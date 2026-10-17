@@ -252,7 +252,8 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
       image.onload=layout;
       if(typeof ResizeObserver!=='undefined'){const observer=new ResizeObserver(layout);observer.observe(button);cardObservers.add(observer);}
       image.onerror=()=>{URL.revokeObjectURL(url);cardURLs.delete(url);button.textContent='Kép nem tölthető be';};
-      button.replaceChildren(image);
+      const background=document.createElement('img');background.className='cover-blur';background.alt='';background.setAttribute('aria-hidden','true');background.src=url;
+      button.replaceChildren(background,image);
       layout();
     }catch{if(valid(t)&&c===cardEpoch){button.title='A borító nem tölthető be. Nyisd meg a galériát a hiba ellenőrzéséhez.';}}
   }
@@ -266,6 +267,7 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
     editSequence++;editObserver?.disconnect();editObserver=null;edit=null;
     if(editor.open)editor.close();
     find('#cover-image').removeAttribute('src');
+    find('#cover-background').removeAttribute('src');
     if(editURL)URL.revokeObjectURL(editURL);editURL=null;
     find('#cover-status').textContent='';
     if(restore&&dialog.open){if(editOpener?.isConnected)editOpener.focus();else find('#photo-zoom').focus();}
@@ -273,10 +275,10 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
   }
   function repaintEditor(){
     if(!edit)return;
-    find('#cover-zoom').value=String(edit.cover_zoom);
-    find('#cover-contain').checked=edit.cover_mode==='contain';
-    find('#cover-zoom-value').textContent=`${edit.cover_zoom.toFixed(2)}×`;
-    find('#cover-zoom').disabled=!edit.loaded||edit.cover_mode==='contain'||busy;
+    const zoom=edit.cover_mode==='contain'?0:edit.cover_zoom;
+    find('#cover-zoom').value=String(zoom);
+    find('#cover-zoom-value').textContent=zoom===0?'Teljes kép':zoom===1?'Keret kitöltése':zoom<1?'Teljes kép és keretkitöltés között':`${zoom.toFixed(2)}× keretkitöltés`;
+    find('#cover-zoom').disabled=!edit.loaded||busy;
     find('#cover-save').disabled=!edit.loaded||busy;
     paintCover(find('#cover-preview'),find('#cover-image'),edit);
   }
@@ -287,7 +289,7 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
     edit={id:photo.id,program:programId,version:snapshot.program.gallery_version,cover_mode:photo.cover_mode||'crop',
       cover_x:photo.cover_x??0.5,cover_y:photo.cover_y??0.5,cover_zoom:photo.cover_zoom??1,loaded:false,drag:null};
     editor.showModal();find('#cover-status').textContent='Előnézet betöltése…';find('#cover-status').classList.remove('error');
-    find('#cover-cancel').disabled=find('#cover-reset').disabled=find('#cover-contain').disabled=false;
+    find('#cover-cancel').disabled=find('#cover-reset').disabled=find('#cover-contain').disabled=find('#cover-fill').disabled=false;
     const preview=find('#cover-preview');
     const resize=()=>{
       const card=find('#shared-cards .cover-button');
@@ -301,7 +303,7 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
       const {data,error}=await client.storage.from(bucket).download(photo.object_path);
       if(!visible(t,v)||seq!==editSequence||!editor.open)return;
       if(error||!data)throw error||Error('download');
-      editURL=URL.createObjectURL(data);const image=find('#cover-image');image.src=editURL;
+      editURL=URL.createObjectURL(data);const image=find('#cover-image');image.src=editURL;find('#cover-background').src=editURL;
       await image.decode();
       if(!visible(t,v)||seq!==editSequence||!editor.open)return;
       if(!image.naturalWidth||!image.naturalHeight)throw Error('decode');
@@ -310,35 +312,46 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
   }
   const preview=find('#cover-preview');
   const clampFocus=n=>Math.max(0,Math.min(1,n));
+  function freeEdit(){
+    if(edit.cover_mode==='free')return;
+    const rect=preview.getBoundingClientRect(),box=paintCover(preview,find('#cover-image'),edit);if(!box)return;
+    edit.cover_x=Math.abs(rect.width-box.width)<1e-8?0.5:clampFocus(box.left/(rect.width-box.width));
+    edit.cover_y=Math.abs(rect.height-box.height)<1e-8?0.5:clampFocus(box.top/(rect.height-box.height));
+    if(edit.cover_mode==='contain')edit.cover_zoom=0;
+    edit.cover_mode='free';
+  }
+  function placeEdit(box,rect,dx,dy){
+    const w=rect.width-box.width,h=rect.height-box.height;
+    if(Math.abs(w)>1e-8)edit.cover_x=clampFocus((box.left+dx)/w);
+    if(Math.abs(h)>1e-8)edit.cover_y=clampFocus((box.top+dy)/h);
+    repaintEditor();
+  }
   preview.addEventListener('pointerdown',event=>{
-    if(!edit?.loaded||busy||edit.cover_mode==='contain'||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;
+    if(!edit?.loaded||busy||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;
+    freeEdit();
     const box=paintCover(preview,find('#cover-image'),edit),rect=preview.getBoundingClientRect();if(!box)return;
     edit.drag={pointer:event.pointerId,x:event.clientX,y:event.clientY,box,rect};preview.setPointerCapture(event.pointerId);preview.focus();event.preventDefault();
   });
   preview.addEventListener('pointermove',event=>{
     const drag=edit?.drag;if(!drag||drag.pointer!==event.pointerId||busy)return;
-    edit.cover_x=clampFocus((drag.rect.width/2-drag.box.left-(event.clientX-drag.x))/drag.box.width);
-    edit.cover_y=clampFocus((drag.rect.height/2-drag.box.top-(event.clientY-drag.y))/drag.box.height);repaintEditor();
+    placeEdit(drag.box,drag.rect,event.clientX-drag.x,event.clientY-drag.y);
   });
   for(const type of ['pointerup','pointercancel','lostpointercapture'])preview.addEventListener(type,()=>{if(edit)edit.drag=null;});
   preview.addEventListener('keydown',event=>{
-    if(!edit?.loaded||busy||edit.cover_mode==='contain'||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
-    event.preventDefault();event.stopPropagation();const step=event.shiftKey?0.08:0.01;
-    // A nyíl a képet mozgatja, nem a kivágókeretet.
-    if(event.key==='ArrowLeft')edit.cover_x=clampFocus(edit.cover_x+step);
-    if(event.key==='ArrowRight')edit.cover_x=clampFocus(edit.cover_x-step);
-    if(event.key==='ArrowUp')edit.cover_y=clampFocus(edit.cover_y+step);
-    if(event.key==='ArrowDown')edit.cover_y=clampFocus(edit.cover_y-step);
-    repaintEditor();
+    if(!edit?.loaded||busy||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+    event.preventDefault();event.stopPropagation();freeEdit();const step=event.shiftKey?20:4;
+    const box=paintCover(preview,find('#cover-image'),edit),rect=preview.getBoundingClientRect();
+    placeEdit(box,rect,event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0,event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0);
   });
-  find('#cover-zoom').oninput=()=>{if(edit&&!busy){edit.cover_zoom=Math.max(1,Math.min(4,Number(find('#cover-zoom').value)));repaintEditor();}};
-  find('#cover-contain').onchange=()=>{if(edit&&!busy){edit.cover_mode=find('#cover-contain').checked?'contain':'crop';repaintEditor();}};
+  find('#cover-zoom').oninput=()=>{if(edit?.loaded&&!busy){const value=Number(find('#cover-zoom').value);freeEdit();edit.cover_zoom=Math.max(0,Math.min(4,value));repaintEditor();}};
+  find('#cover-contain').onclick=()=>{if(edit?.loaded&&!busy){freeEdit();edit.cover_zoom=0;edit.cover_x=edit.cover_y=0.5;repaintEditor();}};
+  find('#cover-fill').onclick=()=>{if(edit?.loaded&&!busy){freeEdit();edit.cover_zoom=1;edit.cover_x=edit.cover_y=0.5;repaintEditor();}};
   find('#cover-reset').onclick=()=>{if(edit&&!busy){Object.assign(edit,{cover_mode:'crop',cover_x:0.5,cover_y:0.5,cover_zoom:1});repaintEditor();}};
   find('#cover-cancel').onclick=()=>{if(!busy)closeEditor();};
   editor.addEventListener('cancel',event=>{event.preventDefault();event.stopPropagation();if(!busy)closeEditor();});
   editor.addEventListener('keydown',event=>{
     if(event.key!=='Tab')return;
-    const items=[preview,find('#cover-contain'),find('#cover-zoom'),find('#cover-save'),find('#cover-cancel'),find('#cover-reset')].filter(n=>!n.disabled);
+    const items=[preview,find('#cover-contain'),find('#cover-fill'),find('#cover-zoom'),find('#cover-save'),find('#cover-cancel'),find('#cover-reset')].filter(n=>!n.disabled);
     const index=items.indexOf(document.activeElement);
     if(event.shiftKey&&index<=0){event.preventDefault();items[items.length-1].focus();}
     else if(!event.shiftKey&&(index===items.length-1||index<0)){event.preventDefault();items[0].focus();}
@@ -346,7 +359,7 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
   find('#cover-save').onclick=async()=>{
     if(!edit?.loaded||busy)return;
     const draft={...edit},seq=editSequence,t=epoch,v=viewEpoch,op=++operation;viewRead++;busy=true;updateControls();repaintEditor();
-    for(const id of ['#cover-cancel','#cover-reset','#cover-contain'])find(id).disabled=true;
+    for(const id of ['#cover-cancel','#cover-reset','#cover-contain','#cover-fill'])find(id).disabled=true;
     find('#cover-status').textContent='Igazítás mentése…';find('#cover-status').classList.remove('error');
     try{
       const next=await rpc(draft.program,null,{p_image_id:draft.id,p_expected_gallery:draft.version,p_mode:draft.cover_mode,
@@ -358,7 +371,7 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
       if(alignButton){alignButton.disabled=false;alignButton.focus();}
       text('A borító igazítását a szerver elmentette.');
     }catch(error){if(visible(t,v)&&seq===editSequence&&op===operation){find('#cover-status').textContent=`Nem igazoltuk vissza a mentést. ${errorText(error)}`;find('#cover-status').classList.toggle('error',true);}}
-    finally{if(visible(t,v)&&op===operation){busy=false;updateControls();for(const id of ['#cover-cancel','#cover-reset','#cover-contain'])find(id).disabled=false;repaintEditor();}}
+    finally{if(visible(t,v)&&op===operation){busy=false;updateControls();for(const id of ['#cover-cancel','#cover-reset','#cover-contain','#cover-fill'])find(id).disabled=false;repaintEditor();}}
   };
   find('#photo-close').onclick=()=>close();
   dialog.addEventListener('cancel',event=>{event.preventDefault();close();});

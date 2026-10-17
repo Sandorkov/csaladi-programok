@@ -51,6 +51,7 @@ nav{flex-wrap:wrap}.backup-panel p{line-height:1.7}.backup-panel h3:not(:first-c
 /* Privát, billentyűzettel és érintéssel is kezelhető családi galéria. */
 .cover-button{border:0;border-radius:0;padding:0;cursor:pointer;overflow:hidden;flex-shrink:0}.cover-button img{display:block}
 .cover-button{position:relative}.cover-button img.adjusted-cover{position:absolute;max-width:none;object-fit:fill;pointer-events:none}
+.cover-button img.cover-blur,.cover-preview img.cover-blur{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(14px) brightness(.7);transform:scale(1.15);pointer-events:none}.adjusted-cover,#cover-image{z-index:1}
 .cover-editor{width:min(620px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:22px;border:1px solid var(--border);border-radius:16px;color:#263d32;background:#f7f9f5}
 .cover-editor:not([open]){display:none}.cover-editor::backdrop{background:#172b24cc;backdrop-filter:blur(5px)}
 .cover-editor p{font-size:14px;line-height:1.6}.cover-preview{position:relative;width:100%;aspect-ratio:2/1;overflow:hidden;background:#e9efdf;touch-action:none;cursor:grab;border-radius:10px;margin:16px 0 22px}.cover-preview:active{cursor:grabbing}.cover-preview:focus-visible{outline:3px solid #91b953;outline-offset:3px}

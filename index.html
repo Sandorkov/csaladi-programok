@@ -106,9 +106,9 @@
   <dialog id="cover-editor" class="cover-editor" aria-labelledby="cover-title">
     <h2 id="cover-title">Borító igazítása</h2>
     <p id="cover-help">Húzd a képet, vagy a képkeretre lépve használd a nyílbillentyűket (Shift: nagyobb lépés). A csúszkán a nyilakkal is nagyíthatsz. Csak a kártya megjelenése változik.</p>
-    <div id="cover-preview" class="cover-preview" tabindex="0" role="group" aria-label="Borító élő előnézete" aria-describedby="cover-help"><img id="cover-image" alt="Borító előnézete" draggable="false"></div>
-    <label><input id="cover-contain" type="checkbox"> Teljes kép (levágás nélkül)</label>
-    <label>Nagyítás <output id="cover-zoom-value">1×</output><input id="cover-zoom" type="range" min="1" max="4" step="0.01" value="1"></label>
+    <div id="cover-preview" class="cover-preview" tabindex="0" role="group" aria-label="Borító élő előnézete" aria-describedby="cover-help"><img id="cover-background" class="cover-blur" alt="" aria-hidden="true" draggable="false"><img id="cover-image" alt="Borító előnézete" draggable="false"></div>
+    <div class="form-actions"><button id="cover-contain" type="button">Teljes kép</button><button id="cover-fill" type="button">Keret kitöltése</button></div>
+    <label>Méretezés <output id="cover-zoom-value"></output><input id="cover-zoom" type="range" min="0" max="4" step="0.001" value="1"></label>
     <p id="cover-status" role="status" aria-live="polite"></p>
     <div class="form-actions"><button id="cover-save" class="primary" type="button">Mentés</button><button id="cover-cancel" type="button">Mégse</button><button id="cover-reset" type="button">Alaphelyzet</button></div>
   </dialog>
