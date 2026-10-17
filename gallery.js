@@ -3,6 +3,8 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
   'use strict';
   const find=s=>document.querySelector(s), dialog=find('#photo-dialog');
   const viewer=find('#photo-viewer');
+  const editor=find('#cover-editor'),cardObservers=new Set();
+  let edit=null,editURL=null,editSequence=0,editObserver=null,editOpener=null;
   const bucket='family-program-images', maxBytes=8*1024*1024;
   let client=null,access=null,epoch=0,cardEpoch=0,viewEpoch=0,snapshot=null,programId=null,busy=false;
   let currentIndex=0,loadIndex=0,bigURL=null,opener=null,touch=null,operation=0,viewRead=0;
@@ -13,6 +15,7 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
   const visible=(t,v)=>valid(t)&&v===viewEpoch&&dialog.open;
   function text(message,error=false){find('#photo-status').textContent=message;find('#photo-status').classList.toggle('error',error);}
   function clearCards(preserve=false){
+    for(const observer of cardObservers)observer.disconnect();cardObservers.clear();
     cardEpoch++;
     if(preserve)return;
     cacheEpoch++;for(const url of cardURLs)URL.revokeObjectURL(url);cardURLs.clear();coverInfo.clear();coverMedia.clear();
@@ -32,14 +35,14 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
   }
   function clearBig(){loadIndex++;find('#photo-large').removeAttribute('src');find('#viewer-image').removeAttribute('src');if(bigURL)URL.revokeObjectURL(bigURL);bigURL=null;}
   function clearView(){
-    closeViewer(false);viewEpoch++;operation++;viewRead++;clearBig();snapshot=null;programId=null;busy=false;touch=null;currentIndex=0;
+    closeEditor(false);closeViewer(false);viewEpoch++;operation++;viewRead++;clearBig();snapshot=null;programId=null;busy=false;touch=null;currentIndex=0;
     for(const url of validationURLs)URL.revokeObjectURL(url);validationURLs.clear();
     find('#photo-files').value='';find('#photo-items').replaceChildren();find('#photo-results').replaceChildren();
     find('#photo-title').textContent='Képek';find('#photo-counter').textContent='';text('');
   }
   function close(force=false){
     if(!force&&busy&&!confirm('Művelet folyamatban. Bezárod? A már elküldött kérés még befejeződhet; a félbemaradt lépések később rendezhetők.'))return;
-    closeViewer(false);if(dialog.open)dialog.close();clearView();
+    closeEditor(false);closeViewer(false);if(dialog.open)dialog.close();clearView();
     if(!force&&opener?.isConnected)opener.focus();opener=null;
   }
   function setContext(nextClient,nextAccess){
@@ -52,9 +55,9 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
     if(['22023','55000'].includes(error.code))return error.message;
     return 'Nem kaptunk biztos visszaigazolást. A már elmentett képek megmaradnak. Frissítsd a galériát, és rendezd a függő műveleteket.';
   }
-  async function rpc(id,action,extra={},t=epoch){
+  async function rpc(id,action,extra={},t=epoch,method='family_gallery'){
     if(!valid(t))throw Error('stale');
-    const {data,error}=await client.rpc('family_gallery',{p_program_id:id,p_action:action,...extra});
+    const {data,error}=await client.rpc(method,{p_program_id:id,...(method==='family_gallery'?{p_action:action}:{}),...extra});
     if(!valid(t))throw Error('stale');
     if(error){if(error.code==='42501')callbacks.onAccessError?.();throw error;}
     if(!data?.program||!Array.isArray(data.images))throw Error('invalid-response');
@@ -104,6 +107,7 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
       if(image.state==='ready'){
         button('Megnézem',()=>showImage(readyImages().findIndex(i=>i.id===image.id)));
         if(!image.is_cover)button('Legyen borító',()=>perform(async(t,v)=>{const next=await rpc(programId,'cover',extraFor(snapshot,image.id),t);if(visible(t,v))snapshot=next;}));
+        else button('Borító igazítása',()=>openEditor(image));
       }else if(image.state==='pending'){
         button('Véglegesítés újrapróbálása',()=>perform(async(t,v)=>{const next=await rpc(programId,'finalize',extraFor(snapshot,image.id),t);if(visible(t,v))snapshot=next;}));
       }
@@ -223,7 +227,7 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
     try{
       let info=coverInfo.get(program.id);
       if(!info||info.version!==program.gallery_version){
-        info={version:program.gallery_version,promise:client.from('family_program_images').select('id,object_path,original_name')
+        info={version:program.gallery_version,promise:client.from('family_program_images').select('id,object_path,original_name,cover_mode,cover_x,cover_y,cover_zoom')
           .eq('program_id',program.id).eq('is_cover',true).eq('state','ready').maybeSingle()};
         coverInfo.set(program.id,info);
       }
@@ -243,10 +247,119 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
       const url=await media.promise;
       if(!url||!valid(t)||c!==cardEpoch)return;
       const image=document.createElement('img');image.className='card-image';image.alt=`Borítókép: ${program.name}`;image.src=url;
+      image.className='adjusted-cover';
+      const layout=()=>paintCover(button,image,data);
+      image.onload=layout;
+      if(typeof ResizeObserver!=='undefined'){const observer=new ResizeObserver(layout);observer.observe(button);cardObservers.add(observer);}
       image.onerror=()=>{URL.revokeObjectURL(url);cardURLs.delete(url);button.textContent='Kép nem tölthető be';};
       button.replaceChildren(image);
+      layout();
     }catch{if(valid(t)&&c===cardEpoch){button.title='A borító nem tölthető be. Nyisd meg a galériát a hiba ellenőrzéséhez.';}}
   }
+  function paintCover(frame,image,settings){
+    const rect=frame.getBoundingClientRect();
+    const box=window.familyCoverLayout(rect.width,rect.height,image.naturalWidth,image.naturalHeight,settings);
+    if(box)for(const key of ['width','height','left','top'])image.style[key]=`${box[key]}px`;
+    return box;
+  }
+  function closeEditor(restore=true){
+    editSequence++;editObserver?.disconnect();editObserver=null;edit=null;
+    if(editor.open)editor.close();
+    find('#cover-image').removeAttribute('src');
+    if(editURL)URL.revokeObjectURL(editURL);editURL=null;
+    find('#cover-status').textContent='';
+    if(restore&&dialog.open){if(editOpener?.isConnected)editOpener.focus();else find('#photo-zoom').focus();}
+    editOpener=null;
+  }
+  function repaintEditor(){
+    if(!edit)return;
+    find('#cover-zoom').value=String(edit.cover_zoom);
+    find('#cover-contain').checked=edit.cover_mode==='contain';
+    find('#cover-zoom-value').textContent=`${edit.cover_zoom.toFixed(2)}×`;
+    find('#cover-zoom').disabled=!edit.loaded||edit.cover_mode==='contain'||busy;
+    find('#cover-save').disabled=!edit.loaded||busy;
+    paintCover(find('#cover-preview'),find('#cover-image'),edit);
+  }
+  async function openEditor(photo){
+    if(busy||!snapshot||snapshot.program.deletion_pending)return;
+    closeEditor(false);editOpener=document.activeElement;
+    const seq=editSequence,t=epoch,v=viewEpoch;
+    edit={id:photo.id,program:programId,version:snapshot.program.gallery_version,cover_mode:photo.cover_mode||'crop',
+      cover_x:photo.cover_x??0.5,cover_y:photo.cover_y??0.5,cover_zoom:photo.cover_zoom??1,loaded:false,drag:null};
+    editor.showModal();find('#cover-status').textContent='Előnézet betöltése…';find('#cover-status').classList.remove('error');
+    find('#cover-cancel').disabled=find('#cover-reset').disabled=find('#cover-contain').disabled=false;
+    const preview=find('#cover-preview');
+    const resize=()=>{
+      const card=find('#shared-cards .cover-button');
+      const rect=card?.getBoundingClientRect();
+      if(rect?.width>0&&rect.height>0)preview.style.aspectRatio=`${rect.width} / ${rect.height}`;
+      repaintEditor();
+    };
+    if(typeof ResizeObserver!=='undefined'){editObserver=new ResizeObserver(resize);const card=find('#shared-cards .cover-button');if(card)editObserver.observe(card);editObserver.observe(preview);}
+    resize();
+    try{
+      const {data,error}=await client.storage.from(bucket).download(photo.object_path);
+      if(!visible(t,v)||seq!==editSequence||!editor.open)return;
+      if(error||!data)throw error||Error('download');
+      editURL=URL.createObjectURL(data);const image=find('#cover-image');image.src=editURL;
+      await image.decode();
+      if(!visible(t,v)||seq!==editSequence||!editor.open)return;
+      if(!image.naturalWidth||!image.naturalHeight)throw Error('decode');
+      edit.loaded=true;resize();find('#cover-status').textContent='Az előnézet követi a kártya képarányát. A nyilakkal is mozgathatod a képet.';preview.focus();
+    }catch(error){if(visible(t,v)&&seq===editSequence&&editor.open){find('#cover-status').textContent='Az előnézet nem tölthető be. Zárd be, és frissítsd a galériát.';find('#cover-status').classList.toggle('error',true);if(String(error?.statusCode)==='403')callbacks.onAccessError?.();}}
+  }
+  const preview=find('#cover-preview');
+  const clampFocus=n=>Math.max(0,Math.min(1,n));
+  preview.addEventListener('pointerdown',event=>{
+    if(!edit?.loaded||busy||edit.cover_mode==='contain'||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;
+    const box=paintCover(preview,find('#cover-image'),edit),rect=preview.getBoundingClientRect();if(!box)return;
+    edit.drag={pointer:event.pointerId,x:event.clientX,y:event.clientY,box,rect};preview.setPointerCapture(event.pointerId);preview.focus();event.preventDefault();
+  });
+  preview.addEventListener('pointermove',event=>{
+    const drag=edit?.drag;if(!drag||drag.pointer!==event.pointerId||busy)return;
+    edit.cover_x=clampFocus((drag.rect.width/2-drag.box.left-(event.clientX-drag.x))/drag.box.width);
+    edit.cover_y=clampFocus((drag.rect.height/2-drag.box.top-(event.clientY-drag.y))/drag.box.height);repaintEditor();
+  });
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])preview.addEventListener(type,()=>{if(edit)edit.drag=null;});
+  preview.addEventListener('keydown',event=>{
+    if(!edit?.loaded||busy||edit.cover_mode==='contain'||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+    event.preventDefault();event.stopPropagation();const step=event.shiftKey?0.08:0.01;
+    // A nyíl a képet mozgatja, nem a kivágókeretet.
+    if(event.key==='ArrowLeft')edit.cover_x=clampFocus(edit.cover_x+step);
+    if(event.key==='ArrowRight')edit.cover_x=clampFocus(edit.cover_x-step);
+    if(event.key==='ArrowUp')edit.cover_y=clampFocus(edit.cover_y+step);
+    if(event.key==='ArrowDown')edit.cover_y=clampFocus(edit.cover_y-step);
+    repaintEditor();
+  });
+  find('#cover-zoom').oninput=()=>{if(edit&&!busy){edit.cover_zoom=Math.max(1,Math.min(4,Number(find('#cover-zoom').value)));repaintEditor();}};
+  find('#cover-contain').onchange=()=>{if(edit&&!busy){edit.cover_mode=find('#cover-contain').checked?'contain':'crop';repaintEditor();}};
+  find('#cover-reset').onclick=()=>{if(edit&&!busy){Object.assign(edit,{cover_mode:'crop',cover_x:0.5,cover_y:0.5,cover_zoom:1});repaintEditor();}};
+  find('#cover-cancel').onclick=()=>{if(!busy)closeEditor();};
+  editor.addEventListener('cancel',event=>{event.preventDefault();event.stopPropagation();if(!busy)closeEditor();});
+  editor.addEventListener('keydown',event=>{
+    if(event.key!=='Tab')return;
+    const items=[preview,find('#cover-contain'),find('#cover-zoom'),find('#cover-save'),find('#cover-cancel'),find('#cover-reset')].filter(n=>!n.disabled);
+    const index=items.indexOf(document.activeElement);
+    if(event.shiftKey&&index<=0){event.preventDefault();items[items.length-1].focus();}
+    else if(!event.shiftKey&&(index===items.length-1||index<0)){event.preventDefault();items[0].focus();}
+  });
+  find('#cover-save').onclick=async()=>{
+    if(!edit?.loaded||busy)return;
+    const draft={...edit},seq=editSequence,t=epoch,v=viewEpoch,op=++operation;viewRead++;busy=true;updateControls();repaintEditor();
+    for(const id of ['#cover-cancel','#cover-reset','#cover-contain'])find(id).disabled=true;
+    find('#cover-status').textContent='Igazítás mentése…';find('#cover-status').classList.remove('error');
+    try{
+      const next=await rpc(draft.program,null,{p_image_id:draft.id,p_expected_gallery:draft.version,p_mode:draft.cover_mode,
+        p_x:draft.cover_x,p_y:draft.cover_y,p_zoom:draft.cover_zoom},t,'family_cover_adjust');
+      if(!visible(t,v)||seq!==editSequence||op!==operation)return;
+      snapshot=next;closeEditor(false);render();
+      const alignButton=Array.from(find('#photo-items').querySelectorAll('button')).find(b=>b.textContent==='Borító igazítása');
+      // A render új gombokat hoz létre; a fókuszt az új igazítógombra adjuk vissza.
+      if(alignButton){alignButton.disabled=false;alignButton.focus();}
+      text('A borító igazítását a szerver elmentette.');
+    }catch(error){if(visible(t,v)&&seq===editSequence&&op===operation){find('#cover-status').textContent=`Nem igazoltuk vissza a mentést. ${errorText(error)}`;find('#cover-status').classList.toggle('error',true);}}
+    finally{if(visible(t,v)&&op===operation){busy=false;updateControls();for(const id of ['#cover-cancel','#cover-reset','#cover-contain'])find(id).disabled=false;repaintEditor();}}
+  };
   find('#photo-close').onclick=()=>close();
   dialog.addEventListener('cancel',event=>{event.preventDefault();close();});
   dialog.addEventListener('close',()=>{if(!dialog.open)clearView();});

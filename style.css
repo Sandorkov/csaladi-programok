@@ -50,6 +50,12 @@ nav{flex-wrap:wrap}.backup-panel p{line-height:1.7}.backup-panel h3:not(:first-c
 @media(max-width:560px){.scope-switch button{flex:1}.shared-toolbar button{width:100%}#shared-form .form-actions{flex-wrap:wrap}}
 /* Privát, billentyűzettel és érintéssel is kezelhető családi galéria. */
 .cover-button{border:0;border-radius:0;padding:0;cursor:pointer;overflow:hidden;flex-shrink:0}.cover-button img{display:block}
+.cover-button{position:relative}.cover-button img.adjusted-cover{position:absolute;max-width:none;object-fit:fill;pointer-events:none}
+.cover-editor{width:min(620px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:22px;border:1px solid var(--border);border-radius:16px;color:#263d32;background:#f7f9f5}
+.cover-editor:not([open]){display:none}.cover-editor::backdrop{background:#172b24cc;backdrop-filter:blur(5px)}
+.cover-editor p{font-size:14px;line-height:1.6}.cover-preview{position:relative;width:100%;aspect-ratio:2/1;overflow:hidden;background:#e9efdf;touch-action:none;cursor:grab;border-radius:10px;margin:16px 0 22px}.cover-preview:active{cursor:grabbing}.cover-preview:focus-visible{outline:3px solid #91b953;outline-offset:3px}
+.cover-preview img{position:absolute;max-width:none;pointer-events:none;user-select:none}.cover-editor input[type=range]{padding:0;min-height:44px;accent-color:var(--green)}.cover-editor input[type=checkbox]{width:20px;height:20px;vertical-align:middle}.cover-editor button{min-height:44px}.cover-editor .form-actions{flex-wrap:wrap}#cover-status.error{color:#a12626}
+html:has(#cover-editor[open]),body:has(#cover-editor[open]){overflow:hidden;overscroll-behavior:none}.photo-dialog:has(~ #cover-editor[open]){overflow:hidden}
 .photo-dialog{width:min(920px,calc(100vw - 24px));max-height:calc(100dvh - 24px);border:1px solid var(--border);border-radius:16px;padding:22px;color:#263d32;background:#f7f9f5;overflow:auto}
 .photo-dialog::backdrop{background:#172b24bb}.photo-dialog:not([open]){display:none}
 .photo-heading,.photo-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.photo-heading{justify-content:space-between}.photo-heading h2{overflow-wrap:anywhere}
