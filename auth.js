@@ -146,11 +146,12 @@
       client = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'pkce', storageKey: 'csaladi-programok.supabase-auth' }
       });
-      familyPanel = window.createFamilyPanel?.(client) ?? null;
+      window.sharedPrograms?.setClient(client, () => familyPanel?.setUser(session?.user?.id ?? null, true));
+      familyPanel = window.createFamilyPanel?.(client, state => window.sharedPrograms?.setMembership(state)) ?? null;
       client.auth.onAuthStateChange((event, nextSession) => {
         sessionRevision++;
         applySession(nextSession);
-        if (event === 'SIGNED_IN') tell('Sikeres belépés. A programok továbbra is csak ezen az eszközön tárolódnak.');
+        if (event === 'SIGNED_IN') tell('Sikeres belépés. A saját eszközön és a családi nézet adatai külön maradnak.');
         if (event === 'SIGNED_OUT') tell('Kijelentkeztél. A helyi programok és képek megmaradtak.');
       });
 
@@ -172,7 +173,7 @@
       if (error) throw error;
       if (revision === sessionRevision) applySession(data?.session ?? null);
       ready = true;
-      if (!callbackFailed) tell(session ? 'Bejelentkezve. A programok továbbra is csak ezen az eszközön tárolódnak.' : interrupted ? 'A Google-belépés nem fejeződött be. Újra próbálhatod; a helyi adatok megmaradtak.' : 'Nem vagy bejelentkezve. A helyi programok belépés nélkül is használhatók.');
+      if (!callbackFailed) tell(session ? 'Bejelentkezve. A Családi programok nézetben érheted el a közös listát.' : interrupted ? 'A Google-belépés nem fejeződött be. Újra próbálhatod; a helyi adatok megmaradtak.' : 'Nem vagy bejelentkezve. A helyi programok belépés nélkül is használhatók.');
     } catch {
       applySession(null);
       ready = false;

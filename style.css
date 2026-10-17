@@ -39,3 +39,12 @@ nav{flex-wrap:wrap}.backup-panel p{line-height:1.7}.backup-panel h3:not(:first-c
 #family-panel{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
 #family-status{font-size:13px;line-height:1.5;margin:0;overflow-wrap:anywhere}
 #family-status.error{color:#a12626}#family-retry{margin-top:8px;min-height:44px}
+/* Elkülönített helyi és közös munkaterület; a kártyák méretei változatlanok. */
+.scope-switch,.shared-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.scope-switch button{min-height:44px}.scope-note{font-size:13px;color:#647267;line-height:1.6}
+#shared-status{font-size:14px;line-height:1.6}#shared-status.error{color:#a12626}
+#shared-family-name{overflow-wrap:anywhere}#shared-form{margin-top:24px}
+#shared-fields{border:0;padding:0;margin:0;min-width:0}
+.shared-favorite-filter{grid-column:1/-1}.shared-favorite-filter input{margin-right:7px}
+#shared-count{font-size:13px;color:#647267}
+@media(max-width:560px){.scope-switch button{flex:1}.shared-toolbar button{width:100%}#shared-form .form-actions{flex-wrap:wrap}}

@@ -1,18 +1,20 @@
 /* Csak a saját családtagság olvasása. Nincs programtárolás vagy tagságmódosítás. */
-window.createFamilyPanel = function createFamilyPanel(client) {
+window.createFamilyPanel = function createFamilyPanel(client, onState) {
   'use strict';
+  onState = onState || (() => {});
   const panel = document.querySelector('#family-panel');
   const status = document.querySelector('#family-status');
   const retry = document.querySelector('#family-retry');
   let currentUserId = null, generation = 0, request = null;
 
-  function show(state, text) {
+  function show(state, text, family = null) {
     panel.hidden = state === 'signed-out';
     panel.dataset.state = state;
     status.textContent = text;
     status.classList.toggle('error', state === 'error');
     retry.hidden = state !== 'error';
     retry.disabled = state !== 'error';
+    onState({ state, userId: currentUserId, family });
   }
 
   async function load(userId, ticket) {
@@ -33,7 +35,8 @@ window.createFamilyPanel = function createFamilyPanel(client) {
       if (ticket !== generation) return;
       if (familyResult.error || !familyResult.data || familyResult.data.id !== membership.family_id ||
           typeof familyResult.data.name !== 'string' || !familyResult.data.name.trim()) throw new Error('Family unavailable');
-      show('member', `Család: ${familyResult.data.name} · Szerepkör: ${membership.role === 'admin' ? 'Adminisztrátor' : 'Tag'}`);
+      show('member', `Család: ${familyResult.data.name} · Szerepkör: ${membership.role === 'admin' ? 'Adminisztrátor' : 'Tag'}`,
+        { id: familyResult.data.id, name: familyResult.data.name, role: membership.role });
     } catch {
       if (ticket !== generation) return;
       show('error', 'Nem sikerült betölteni a családtagságot. Ellenőrizd a kapcsolatot és a családi adatbázis beállításait, majd próbáld újra.');

@@ -9,13 +9,17 @@
   <script src="backup.js" defer></script>
   <script src="auth-config.js" defer></script>
   <script src="family.js" defer></script>
+  <script src="shared-programs.js" defer></script>
   <script src="auth.js" defer></script>
 </head>
 <body>
-  <header class="top"><div class="brand">☀ Családi programötletek</div><div class="auth-panel" aria-label="Bejelentkezés"><div class="auth-actions"><span id="auth-identity" hidden></span><button id="google-login" type="button" disabled>Belépés Google-fiókkal</button><button id="google-logout" type="button" hidden disabled>Kijelentkezés</button></div><p id="auth-status" role="status" aria-live="polite">Bejelentkezési állapot ellenőrzése…</p><div id="family-panel" hidden><p id="family-status" role="status" aria-live="polite"></p><button id="family-retry" type="button" hidden>Tagság újratöltése</button></div><p class="auth-note">A programok egyelőre ezen az eszközön tárolódnak; a belépés még nem szinkronizálja őket.</p></div></header>
+  <header class="top"><div class="brand">☀ Családi programötletek</div><div class="auth-panel" aria-label="Bejelentkezés"><div class="auth-actions"><span id="auth-identity" hidden></span><button id="google-login" type="button" disabled>Belépés Google-fiókkal</button><button id="google-logout" type="button" hidden disabled>Kijelentkezés</button></div><p id="auth-status" role="status" aria-live="polite">Bejelentkezési állapot ellenőrzése…</p><div id="family-panel" hidden><p id="family-status" role="status" aria-live="polite"></p><button id="family-retry" type="button" hidden>Tagság újratöltése</button></div><p class="auth-note">A Saját eszközön és a Családi programok külön listák. Nincs automatikus átvitel.</p></div></header>
   <main>
     <section class="intro"><p class="eyebrow">IRÁNY AZ EGYÜTT TÖLTÖTT IDŐ</p><h1>A következő közös kaland<br>itt kezdődik.</h1><p>Gyűjtsétek egy helyre a jó ötleteket, és válasszatok programot a következő szabad délutánra.</p><div class="decoration" aria-hidden="true">🌳 🚲 ☀️</div></section>
-    <nav aria-label="Főmenü"><button data-view="all" class="active" aria-current="page">Programok</button><button data-view="new">＋ Új program</button><button data-view="favorites">♡ Kedvencek</button><button data-view="backup">Adatmentés</button></nav>
+    <div class="scope-switch" role="group" aria-label="Programok tárolási helye"><button id="scope-local" type="button" aria-pressed="true" class="active">Saját eszközön</button><button id="scope-shared" type="button" aria-pressed="false">Családi programok</button></div>
+    <div id="local-workspace">
+    <p class="scope-note">Saját eszközön · A meglévő programok és képek csak ebben a böngészőben vannak. Nincs automatikus átvitel.</p>
+    <nav aria-label="Helyi programok menüje"><button data-view="all" class="active" aria-current="page">Programok</button><button data-view="new">＋ Új program</button><button data-view="favorites">♡ Kedvencek</button><button data-view="backup">Adatmentés</button></nav>
     <p id="status" role="status" aria-live="polite">Programok betöltése…</p>
     <section id="list-view" aria-labelledby="list-title">
       <div class="section-head"><h2 id="list-title">Minden program</h2><span id="count" role="status" aria-live="polite" aria-atomic="true"></span></div>
@@ -39,6 +43,7 @@
     <section id="backup-view" hidden aria-labelledby="backup-title">
       <div class="section-head"><h2 id="backup-title">Adatmentés</h2></div>
       <div class="form-panel backup-panel">
+        <p class="scope-note"><strong>Ez az adatmentés és visszaállítás kizárólag a saját eszköz helyi programjait és képeit kezeli. A családi programokat nem menti és nem módosítja.</strong></p>
         <h3>Biztonsági mentés</h3>
         <p>Töltsd le az összes programot, képet és kedvencjelölést egyetlen JSON-fájlba. A keresés és a szűrők nem korlátozzák a mentést.</p>
         <button id="export-backup" class="primary" type="button">Biztonsági mentés letöltése</button>
@@ -55,7 +60,31 @@
         <button id="cancel-restore" type="button" hidden>Mégse – visszaállítás megszakítása</button>
       </div>
     </section>
-    <footer>Csak a ti ötleteitek. A helyi programok belépés nélkül is használhatók.<br>Az adatok ezen az eszközön, ebben a böngészőben tárolódnak.</footer>
+    </div>
+    <section id="shared-workspace" hidden aria-labelledby="shared-title">
+      <div class="section-head"><h2 id="shared-title">Családi programok</h2><span id="shared-family-name"></span></div>
+      <p class="scope-note">Közös lista a Supabase-ben, egyelőre képek nélkül. Nincs Realtime: a más eszközön történt változásokhoz frissítsd a listát. Az Adatmentés csak a helyi nézetet kezeli.</p>
+      <div class="shared-toolbar"><button id="shared-refresh" type="button" disabled>Lista frissítése</button><button id="shared-new" class="primary" type="button" disabled>＋ Új családi program</button></div>
+      <p id="shared-status" role="status" aria-live="polite">A családi programokhoz lépj be, és legyen érvényes családtagságod.</p>
+      <div id="shared-filters" class="filters" hidden>
+        <label>Keresés név vagy helyszín alapján<input id="shared-search" type="search" aria-controls="shared-cards" placeholder="Név vagy helyszín"></label>
+        <label>Kategória<select id="shared-category"><option value="">Összes kategória</option><option>Kirándulás</option><option>Bringázás</option><option>Családi program</option></select></label>
+        <label>Rendezés ár szerint<select id="shared-sort"><option value="asc">Legolcsóbb elöl</option><option value="desc">Legdrágább elöl</option></select></label>
+        <label class="shared-favorite-filter"><input id="shared-only-favorites" type="checkbox"> Csak a család közös kedvencei</label>
+      </div>
+      <p id="shared-count" role="status" aria-live="polite"></p>
+      <div id="shared-cards" class="cards"></div>
+      <form id="shared-form" class="form-panel" hidden>
+        <h3 id="shared-form-title">Új családi program</h3>
+        <fieldset id="shared-fields"><legend class="hint">Közös, felhőben tárolt program</legend>
+          <div class="fields"><label>Program neve *<input name="name" required maxlength="100"></label><label>Helyszín *<input name="location" required maxlength="150"></label><label>Kategória *<select name="category"><option>Kirándulás</option><option>Bringázás</option><option>Családi program</option></select></label><label>Becsült költség (Ft/fő) *<input name="cost" type="number" required min="0" max="100000000" step="1" value="0"></label></div>
+          <label>Rövid leírás *<textarea name="description" required maxlength="1500" rows="4"></textarea></label>
+          <p class="hint">A családi programok képfeltöltése később érkezik. A helyi nézet képei változatlanul elérhetők.</p>
+          <div class="form-actions"><button id="shared-save" type="submit" class="primary">Családi program mentése</button><button id="shared-cancel" type="button">Mégse</button><button id="shared-reload-edit" type="button" hidden>Űrlap újratöltése</button></div>
+        </fieldset>
+      </form>
+    </section>
+    <footer>Csak a ti ötleteitek. A Saját eszközön nézet belépés nélkül is használható.<br>A családi lista külön, jogosultsággal védett felhőadatbázisban található.</footer>
   </main>
 </body>
 </html>
