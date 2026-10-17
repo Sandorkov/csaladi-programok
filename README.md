@@ -1,6 +1,71 @@
 # Családi programötletek
 
-Egyszerű magyar webalkalmazás HTML, CSS és JavaScript használatával. Nincs keretrendszer, telepítendő függőség, regisztráció vagy külső szolgáltatás.
+Egyszerű magyar webalkalmazás HTML, CSS és JavaScript használatával, keretrendszer és telepítési/build lépés nélkül. A programok helyben, IndexedDB-ben tárolódnak. Az opcionális Google-belépés Supabase Auth-ot és egy böngészőben betöltődő Supabase-könyvtárat használ. A helyi programfunkciók belépés nélkül is elérhetők.
+
+## Google-fiókos belépés – egyelőre szinkronizálás nélkül
+
+A fejléc **Belépés Google-fiókkal** gombja Google-azonosítást indít a Supabase Auth szolgáltatáson keresztül. Belépve a neved (ennek hiányában az e-mail-címed) és a **Kijelentkezés** gomb látható. A Supabase klienskönyvtára külön böngészős munkamenetet őriz meg és frissít; így normál böngészőben oldalfrissítés után is felismerhető a belépés. A böngésző tárolási korlátozásai vagy a munkamenet lejárata miatt új belépésre lehet szükség.
+
+**Ez a lépés még nem közös adatbázis:** a programok, képek és kedvencek ugyanúgy az adott böngészőben maradnak. Másik eszközön belépve még nem jelennek meg automatikusan. A belépés nem zárja el a helyi programokat: kijelentkezve is elérhetők ugyanabban a böngészőben. Sem belépés, sem kijelentkezés nem töröl programot vagy képet. A kijelentkezés csak az ezen böngészőben használt Supabase-munkamenetre vonatkozik.
+
+### Kapcsolati adatok
+
+Az `auth-config.js` már tartalmazza a megadott Supabase projektcímet és publishable kulcsot. A `NEXT_PUBLIC_SUPABASE_URL` értéke a `supabaseUrl`, a `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` értéke a `supabasePublishableKey` mezőbe került. A `NEXT_PUBLIC_` elnevezés miatt nem szükséges Next.js: ez egy hagyományos böngészős konfigurációs fájl.
+
+Ezek a kapcsolati adatok nyilvános használatra valók. Google Client secret, Supabase secret/service_role kulcs és adatbázisjelszó soha ne kerüljön ebbe a fájlba, a GitHub-forrásba vagy a beszélgetésbe. Az alkalmazás csak `sb_publishable_` kezdetű kulcsot fogad el. Nincs szükség adatbázistábla, Storage-tároló vagy családi jogosultságrendszer létrehozására ehhez a belépési lépéshez.
+
+A klienskönyvtár rögzített verziója **@supabase/supabase-js 2.118.0**, a jsDelivr CDN-ről töltődik be. Nincs npm-telepítés és build. Ha a könyvtár hálózati vagy blokkolási hiba miatt nem töltődik be, magyar üzenet jelenik meg, a helyi programfunkciók pedig tovább működnek. Ha bármelyik kapcsolati adat hiányzik, a belépés letiltva marad, de a többi funkció használható.
+
+### Supabase és Google beállítások
+
+A saját szolgáltatói kezelőfelületeiden ellenőrizd az alábbiakat:
+
+1. Supabase **Authentication → Providers / Sign In → Google**: a Google szolgáltató legyen engedélyezve, és a saját Google OAuth-kliensed adatai legyenek beállítva. A kliens titka kizárólag itt, a szolgáltatói beállításban maradjon.
+2. Supabase **Authentication → URL Configuration**:
+   - **Site URL:** `https://sandorkov.github.io/csaladi-programok/`
+   - **Redirect URLs:** külön engedélyezd ugyanezt a pontos címet: `https://sandorkov.github.io/csaladi-programok/` (a projekt útvonalával és a záró perjellel).
+3. Google Auth Platform / Google Cloud OAuth-kliens, **Web application**:
+   - **Authorized JavaScript origins:** `https://sandorkov.github.io` (ide nem kerül projektútvonal).
+   - **Authorized redirect URIs:** `https://qcmbapyuwezbkakwkuuc.supabase.co/auth/v1/callback` (a Supabase Google-provider felületén mutatott callback-címmel egyezzen).
+4. Ha a Google-alkalmazás tesztelési módban van, a próbához használt Google-fiókok legyenek engedélyezett tesztfelhasználók.
+
+A Google először a Supabase-hez tér vissza, a Supabase pedig a fenti GitHub Pages-címre. A böngészős modul PKCE-kódcserét használ, majd eltávolítja az egyszer használatos kódot és a szolgáltatói hibaadatokat a címsorból.
+
+Hivatalos útmutatók: [Google-belépés](https://supabase.com/docs/guides/auth/social-login/auth-google), [visszatérési címek](https://supabase.com/docs/guides/auth/redirect-urls), [Auth állapotváltozásai](https://supabase.com/docs/reference/javascript/auth-onauthstatechange).
+
+### Kipróbálás közzététel után
+
+1. Töltsd fel a lent felsorolt fájlokat a meglévő GitHub-repozitórium megfelelő helyére. Várd meg a GitHub Pages frissülését, majd normál böngészőlapon nyisd meg a `https://sandorkov.github.io/csaladi-programok/` címet. Szükség esetén frissíts Ctrl+F5-tel.
+2. Jegyezd meg a meglévő programok és képek állapotát; a biztonsági mentésedet őrizd meg.
+3. Nyomd meg a **Belépés Google-fiókkal** gombot, és végezd el a Google-belépést. Ugyanerre a Pages-címre kell visszaérkezned; a neved vagy e-mail-címed és a **Kijelentkezés** gomb jelenjen meg.
+4. Frissíts Ctrl+R-rel: a belépett állapotnak helyre kell állnia. Nézd meg a kedvenceket, keresést, rendezést, képeket és adatmentést is.
+5. Jelentkezz ki: a belépési gomb visszatér, a programok és képek megmaradnak. A kijelentkezés nem jelent ki a Google-fiókodból a Google más szolgáltatásaiban.
+6. Indíts új belépést, majd szakítsd meg, vagy használd a böngésző Vissza gombját. Visszatéréskor magyar üzenetnek kell jeleznie, hogy a belépés nem fejeződött be; újra próbálható. Ha a Google-oldal külön visszatérési lehetőség nélkül marad nyitva, a Vissza gombbal térj vissza: az alkalmazás csak visszatéréskor tud jelezni a megszakításról.
+7. Hibás beállítás vagy hálózati hiba esetén magyar hibaüzenet jelenik meg. Javítás után frissítsd az oldalt. A részletes szolgáltatói hiba és a tokenek nem jelennek meg a felületen vagy a naplóban.
+
+A belépés ebben a változatban kizárólag a megadott GitHub Pages-címről indítható. Közvetlen `file://` vagy helyi HTTP-cím alatt a programlista használható, a belépésnél viszont a Pages-címre irányító tájékoztatás jelenik meg. Ennek oka, hogy a PKCE-belépésnek ugyanarra a böngészős eredetre kell visszatérnie, ahonnan indult; másik eredeten tárolódik a szükséges ellenőrző adat. A helyi és a Pages-címen tárolt programadatok továbbra is különböznek.
+
+### Feltöltendő fájlok – ezt a közzétételt te végzed
+
+A meglévő repozitóriumban frissítsd az alábbiakat; a többi meglévő fájlt tartsd meg:
+
+- `index.html` – fejléc, belépési vezérlők és új szkriptek.
+- `style.css` – a belépési rész telefonhoz is igazodó megjelenése.
+- `app.js` és `backup.js` – a helyi műveletek csak a fő tartalom gombjait zárolják, a külön kezelt belépési gombokat nem.
+- `auth-config.js` – új, csak nyilvános Supabase-konfiguráció.
+- `auth.js` – új belépési modul.
+- `README.md` – frissített útmutató.
+- `tests/auth.test.cjs` – új automatikus teszt; a webalkalmazás futásához nem szükséges, a forrásokkal együtt érdemes feltölteni.
+
+Nem készítettem commitot vagy GitHub-közzétételt. Helyi JSON-mentést, jelszót vagy titkos kulcsot ne tölts fel.
+
+### A belépési lépés elvégzett ellenőrzései
+
+- Sikeres: `node --check auth-config.js`, `node --check auth.js`, `node --check app.js`, `node --check backup.js`.
+- Sikeres: `node tests/auth.test.cjs`. Szimulált Supabase-válaszokkal ellenőriztük a pontos Google-visszatérési címet, PKCE-beállításokat, tárolt munkamenet felismerését a felületen, név/e-mail megjelenítését, kijelentkezést, állapotváltozásokat, megszakítást és Vissza gombos visszatérést, hibás/lejárt callback kezelését és a címsor tisztítását, SDK-/hálózati-/konfigurációs hibákat. A teszt megtiltja, hogy a belépési modul közvetlenül az IndexedDB-hez nyúljon, illetve az SDK-t megkerülve localStorage-műveletet végezzen. A munkamenet tárolását az SDK kezeli.
+- A meglévő `node tests/backup.test.cjs` teljes tesztsorozata is sikeres.
+- A rögzített SDK-cím HTTP 200 választ adott, és a csomag tartalmazza a `createClient` belépési pontot.
+- **Valódi Google-belépést, valódi tokenmegőrzést/-frissítést, Supabase projektbeállításokat és böngészős/mobilos vizuális megjelenést nem teszteltünk.** A mocktesztek nem helyettesítik a közzététel utáni fenti próbát. A tesztek nem jelentkeznek be Google-fiókba, és nem módosítanak programadatot.
 
 ## Indítás a saját gépeden
 

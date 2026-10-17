@@ -28,3 +28,10 @@ nav{flex-wrap:wrap}.backup-panel p{line-height:1.7}.backup-panel h3:not(:first-c
   .intro h1{margin:8px 0}
   .intro .decoration{font-size:18px;padding:6px}
 }
+/* A belépés külön állapotot használ; a helyi programok vezérlőitől független. */
+.top{align-items:flex-start}.auth-panel{max-width:470px;min-width:0;text-align:right}
+.auth-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap}
+#auth-identity{font-size:14px;font-weight:650;overflow-wrap:anywhere;min-width:0}
+#auth-status,.auth-note{font-size:12px;line-height:1.5;margin:7px 0 0;color:#647267}
+#auth-status.error{color:#a12626}.auth-actions button{min-height:44px}
+@media(max-width:760px){.top{flex-direction:column;gap:12px}.auth-panel{max-width:100%;text-align:left}.auth-actions{justify-content:flex-start}}

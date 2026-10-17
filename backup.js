@@ -13,7 +13,7 @@ function backupMessage(text, error = false) {
 
 function backupLock(locked) {
   busy = locked;
-  document.querySelectorAll('button').forEach(button => button.disabled = locked || !db);
+  document.querySelectorAll('main button').forEach(button => button.disabled = locked || !db);
   $('#restore-file').disabled = locked || !db;
 }
 
