@@ -2,6 +2,7 @@
 window.createFamilyGallery = function createFamilyGallery(callbacks) {
   'use strict';
   const find=s=>document.querySelector(s), dialog=find('#photo-dialog');
+  const viewer=find('#photo-viewer');
   const bucket='family-program-images', maxBytes=8*1024*1024;
   let client=null,access=null,epoch=0,cardEpoch=0,viewEpoch=0,snapshot=null,programId=null,busy=false;
   let currentIndex=0,loadIndex=0,bigURL=null,opener=null,touch=null,operation=0,viewRead=0;
@@ -16,18 +17,29 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
     if(preserve)return;
     cacheEpoch++;for(const url of cardURLs)URL.revokeObjectURL(url);cardURLs.clear();coverInfo.clear();coverMedia.clear();
   }
-  function clearBig(){loadIndex++;find('#photo-large').removeAttribute('src');if(bigURL)URL.revokeObjectURL(bigURL);bigURL=null;}
+  function closeViewer(restore=true){
+    if(viewer.open)viewer.close();
+    find('#viewer-image').removeAttribute('src');touch=null;
+    if(restore&&dialog.open)find('#photo-zoom').focus();
+  }
+  function syncViewer(){
+    const image=find('#viewer-image');image.removeAttribute('src');
+    if(!viewer.open)return;
+    if(bigURL)image.src=bigURL;
+    image.alt=readyImages()[currentIndex]?.original_name||'';
+    find('#viewer-counter').textContent=readyImages().length?`${currentIndex+1} / ${readyImages().length}`:'';
+    find('#viewer-prev').disabled=find('#viewer-next').disabled=readyImages().length<2;
+  }
+  function clearBig(){loadIndex++;find('#photo-large').removeAttribute('src');find('#viewer-image').removeAttribute('src');if(bigURL)URL.revokeObjectURL(bigURL);bigURL=null;}
   function clearView(){
-    viewEpoch++;operation++;viewRead++;clearBig();snapshot=null;programId=null;busy=false;touch=null;currentIndex=0;
+    closeViewer(false);viewEpoch++;operation++;viewRead++;clearBig();snapshot=null;programId=null;busy=false;touch=null;currentIndex=0;
     for(const url of validationURLs)URL.revokeObjectURL(url);validationURLs.clear();
     find('#photo-files').value='';find('#photo-items').replaceChildren();find('#photo-results').replaceChildren();
     find('#photo-title').textContent='Képek';find('#photo-counter').textContent='';text('');
-    find('#photo-stage').classList.remove('zoomed');
-    find('#photo-zoom').setAttribute('aria-pressed','false');
   }
   function close(force=false){
     if(!force&&busy&&!confirm('Művelet folyamatban. Bezárod? A már elküldött kérés még befejeződhet; a félbemaradt lépések később rendezhetők.'))return;
-    if(dialog.open)dialog.close();clearView();
+    closeViewer(false);if(dialog.open)dialog.close();clearView();
     if(!force&&opener?.isConnected)opener.focus();opener=null;
   }
   function setContext(nextClient,nextAccess){
@@ -61,22 +73,24 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
     for(const id of ['#photo-upload','#photo-cleanup','#photo-files'])find(id).disabled=busy||!snapshot||snapshot.program.deletion_pending;
     find('#photo-refresh').disabled=busy||!programId;
     find('#photo-prev').disabled=find('#photo-next').disabled=readyImages().length<2;
+    find('#photo-zoom').disabled=!bigURL;
     // A törlés alatt álló program maradék képeit a kártya Törlés folytatása gombja rendezi.
     for(const button of find('#photo-items').querySelectorAll('button'))button.disabled=busy||snapshot?.program.deletion_pending;
   }
   async function showImage(index){
     const images=readyImages(),t=epoch,v=viewEpoch;
-    clearBig();const request=loadIndex;
+    clearBig();find('#photo-zoom').disabled=true;const request=loadIndex;
     if(!images.length){find('#photo-counter').textContent='Még nincs véglegesített kép.';return;}
     currentIndex=(index+images.length)%images.length;
     const photo=images[currentIndex];find('#photo-counter').textContent=`${currentIndex+1} / ${images.length} · ${photo.original_name}`;
+    syncViewer();
     find('#photo-large').alt=photo.original_name;
     try{
       const {data,error}=await client.storage.from(bucket).download(photo.object_path);
       if(!visible(t,v)||request!==loadIndex)return;
       if(error||!data)throw error||Error('missing-image');
-      bigURL=URL.createObjectURL(data);find('#photo-large').src=bigURL;
-    }catch(error){if(visible(t,v)&&request===loadIndex){text('A kép letöltése nem sikerült. Ellenőrizd a kapcsolatot/jogosultságot, majd frissítsd a galériát.',true);if(String(error.statusCode)==='403')callbacks.onAccessError?.();}}
+      bigURL=URL.createObjectURL(data);find('#photo-large').src=bigURL;find('#photo-zoom').disabled=false;syncViewer();
+    }catch(error){if(visible(t,v)&&request===loadIndex){text('A kép letöltése nem sikerült. Ellenőrizd a kapcsolatot/jogosultságot, majd frissítsd a galériát.',true);if(viewer.open)find('#viewer-counter').textContent='A kép letöltése nem sikerült. Lapozz, vagy zárd be a képnézegetőt.';if(String(error.statusCode)==='403')callbacks.onAccessError?.();}}
   }
   function render(){
     const items=find('#photo-items');items.replaceChildren();
@@ -238,18 +252,36 @@ window.createFamilyGallery = function createFamilyGallery(callbacks) {
   dialog.addEventListener('close',()=>{if(!dialog.open)clearView();});
   find('#photo-prev').onclick=()=>showImage(currentIndex-1);
   find('#photo-next').onclick=()=>showImage(currentIndex+1);
-  find('#photo-zoom').onclick=()=>{const on=find('#photo-stage').classList.toggle('zoomed');find('#photo-zoom').setAttribute('aria-pressed',String(on));};
+  find('#photo-zoom').onclick=()=>{if(!bigURL||!dialog.open||viewer.open)return;viewer.showModal();syncViewer();find('#viewer-close').focus();};
+  find('#viewer-close').onclick=()=>closeViewer();
+  viewer.addEventListener('cancel',event=>{event.preventDefault();event.stopPropagation();closeViewer();});
+  viewer.addEventListener('close',()=>{find('#viewer-image').removeAttribute('src');});
+  find('#viewer-prev').onclick=()=>showImage(currentIndex-1);
+  find('#viewer-next').onclick=()=>showImage(currentIndex+1);
+  viewer.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeViewer();return;}
+    if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();event.stopPropagation();void showImage(currentIndex+(event.key==='ArrowLeft'?-1:1));}
+    if(event.key==='Tab'){
+      const buttons=[find('#viewer-close'),find('#viewer-prev'),find('#viewer-next')].filter(b=>!b.disabled);
+      const index=buttons.indexOf(document.activeElement);
+      if(event.shiftKey&&index<=0){event.preventDefault();buttons[buttons.length-1].focus();}
+      else if(!event.shiftKey&&(index===buttons.length-1||index<0)){event.preventDefault();buttons[0].focus();}
+    }
+  });
   dialog.addEventListener('keydown',event=>{
+    if(viewer.open)return;
     if(['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName))return;
     if(event.key==='ArrowLeft'){event.preventDefault();void showImage(currentIndex-1);}
     if(event.key==='ArrowRight'){event.preventDefault();void showImage(currentIndex+1);}
   });
-  find('#photo-stage').addEventListener('pointerdown',event=>{if(event.pointerType==='touch')touch=event.isPrimary===false?null:{x:event.clientX,y:event.clientY};});
-  find('#photo-stage').addEventListener('pointercancel',()=>{touch=null;});
-  find('#photo-stage').addEventListener('pointerup',event=>{
+  for(const stage of [find('#photo-stage'),find('#viewer-stage')]){
+  stage.addEventListener('pointerdown',event=>{if(event.pointerType==='touch')touch=event.isPrimary===false?null:{x:event.clientX,y:event.clientY};});
+  stage.addEventListener('pointercancel',()=>{touch=null;});
+  stage.addEventListener('pointerup',event=>{
     if(!touch)return;const dx=event.clientX-touch.x,dy=event.clientY-touch.y;touch=null;
-    if(!find('#photo-stage').classList.contains('zoomed')&&Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.5)void showImage(currentIndex+(dx<0?1:-1));
+    if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.5)void showImage(currentIndex+(dx<0?1:-1));
   });
+  }
   find('#photo-large').onerror=()=>{if(dialog.open)text('Ez a képfájl nem jeleníthető meg. Frissítsd a galériát; a fájlt nem módosítottuk.',true);};
   return {setContext,clearCards,decorateCard,open,deleteProgram,isBusy:()=>busy,
     syncPrograms(programs){if(programId&&!programs.some(p=>p.id===programId))close(true);}};

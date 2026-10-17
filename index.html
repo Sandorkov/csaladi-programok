@@ -92,8 +92,8 @@
     <p id="photo-status" role="status" aria-live="polite"></p>
     <div id="photo-stage" class="photo-stage"><img id="photo-large" alt="Családi program képe"></div>
     <p id="photo-counter" aria-live="polite"></p>
-    <div class="photo-nav"><button id="photo-prev" type="button" aria-label="Előző kép">← Előző</button><button id="photo-next" type="button" aria-label="Következő kép">Következő →</button><button id="photo-zoom" type="button" aria-pressed="false">Nagyítás</button><button id="photo-refresh" type="button">Galéria frissítése</button></div>
-    <p class="hint">Lapozás: nyílbillentyűk vagy telefonon vízszintes húzás. Bezárás: Escape vagy Bezárás. Nagyítva a képet görgetheted.</p>
+    <div class="photo-nav"><button id="photo-prev" type="button" aria-label="Előző kép">← Előző</button><button id="photo-next" type="button" aria-label="Következő kép">Következő →</button><button id="photo-zoom" type="button" aria-haspopup="dialog">Nagyítás</button><button id="photo-refresh" type="button">Galéria frissítése</button></div>
+    <p class="hint">Lapozás: nyílbillentyűk vagy telefonon vízszintes húzás. A Nagyítás külön képnézegetőt nyit; Escape-pel visszatérhetsz a galériához.</p>
     <label>Képek hozzáadása<input id="photo-files" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" aria-describedby="photo-limits"></label>
     <p id="photo-limits" class="hint">JPG, PNG, WebP vagy GIF; max. 8 MiB/kép, 10 fájl egyszerre, 20 kép/foglalás programonként. HEIC/HEIF és SVG nem támogatott. Az eredeti fájlt változtatás nélkül mentjük.</p>
     <button id="photo-upload" class="primary" type="button">Kiválasztott képek feltöltése</button>
@@ -101,6 +101,13 @@
     <h3>Képek kezelése</h3><ul id="photo-items" class="photo-items"></ul>
     <button id="photo-cleanup" type="button">Félbemaradt műveletek rendezése</button>
     <p class="hint">A rendezés a törlésre jelölt képeket és a 15 percnél régebbi, nem véglegesített feltöltéseket távolítja el. A kész képeket nem törli.</p>
+  </dialog>
+  <dialog id="photo-viewer" class="photo-viewer" aria-label="Nagy képes képnézegető">
+    <button id="viewer-close" class="viewer-close" type="button" autofocus aria-label="Képnézegető bezárása">✕ Bezárás</button>
+    <div id="viewer-stage" class="viewer-stage"><img id="viewer-image" alt=""></div>
+    <button id="viewer-prev" class="viewer-prev" type="button" aria-label="Előző kép">❮</button>
+    <button id="viewer-next" class="viewer-next" type="button" aria-label="Következő kép">❯</button>
+    <p id="viewer-counter" class="viewer-counter" role="status" aria-live="polite"></p>
   </dialog>
 </body>
 </html>
