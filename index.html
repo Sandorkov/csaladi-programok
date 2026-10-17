@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Családi programötletek</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+  <script src="backup.js" defer></script>
+</head>
+<body>
+  <header class="top"><div class="brand">☀ Családi programötletek</div><span>Sok kis élmény, együtt.</span></header>
+  <main>
+    <section class="intro"><p class="eyebrow">IRÁNY AZ EGYÜTT TÖLTÖTT IDŐ</p><h1>A következő közös kaland<br>itt kezdődik.</h1><p>Gyűjtsétek egy helyre a jó ötleteket, és válasszatok programot a következő szabad délutánra.</p><div class="decoration" aria-hidden="true">🌳 🚲 ☀️</div></section>
+    <nav aria-label="Főmenü"><button data-view="all" class="active" aria-current="page">Programok</button><button data-view="new">＋ Új program</button><button data-view="favorites">♡ Kedvencek</button><button data-view="backup">Adatmentés</button></nav>
+    <p id="status" role="status" aria-live="polite">Programok betöltése…</p>
+    <section id="list-view" aria-labelledby="list-title">
+      <div class="section-head"><h2 id="list-title">Minden program</h2><span id="count" role="status" aria-live="polite" aria-atomic="true"></span></div>
+      <div class="filters" role="search" aria-label="Programok szűrése">
+        <label for="search">Keresés név vagy helyszín alapján<input id="search" type="search" placeholder="Például: piknik vagy Budapest" aria-controls="cards"></label>
+        <label for="category-filter">Kategória<select id="category-filter" aria-controls="cards"><option value="">Összes kategória</option><option>Kirándulás</option><option>Bringázás</option><option>Családi program</option></select></label>
+        <label for="cost-sort">Rendezés ár szerint<select id="cost-sort" aria-controls="cards"><option value="asc">Legolcsóbb elöl</option><option value="desc">Legdrágább elöl</option></select></label>
+      </div>
+      <div id="cards" class="cards"></div>
+    </section>
+    <section id="form-view" hidden aria-labelledby="form-title">
+      <div class="section-head"><h2 id="form-title">Új program</h2><span>Egy ötletből közös élmény</span></div>
+      <form id="program-form" class="form-panel">
+        <div class="fields"><label>Program neve *<input name="name" required maxlength="100" placeholder="Például: Piknik a tóparton"></label><label>Helyszín *<input name="location" required maxlength="150" placeholder="Település, park vagy találkozóhely"></label><label>Kategória *<select name="category"><option>Kirándulás</option><option>Bringázás</option><option>Családi program</option></select></label><label>Becsült költség (Ft/fő) *<input name="cost" type="number" required min="0" max="100000000" step="1" value="0"></label></div>
+        <label>Rövid leírás *<textarea name="description" required maxlength="1500" rows="4" placeholder="Miért lenne jó elmenni? Mit érdemes vinni?"></textarea></label>
+        <label>Kép feltöltése (opcionális)<input name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><p class="hint">JPG, PNG, WebP vagy GIF, legfeljebb 8 MB. A kép is ebben a böngészőben marad.</p>
+        <img id="image-preview" class="preview" alt="A kiválasztott programkép előnézete" hidden><label id="remove-image-label" hidden><input id="remove-image" type="checkbox"> Meglévő kép eltávolítása</label>
+        <div class="form-actions"><button type="submit" class="primary">Program mentése</button><button type="button" id="cancel">Mégse</button></div>
+      </form>
+    </section>
+    <section id="backup-view" hidden aria-labelledby="backup-title">
+      <div class="section-head"><h2 id="backup-title">Adatmentés</h2></div>
+      <div class="form-panel backup-panel">
+        <h3>Biztonsági mentés</h3>
+        <p>Töltsd le az összes programot, képet és kedvencjelölést egyetlen JSON-fájlba. A keresés és a szűrők nem korlátozzák a mentést.</p>
+        <button id="export-backup" class="primary" type="button">Biztonsági mentés letöltése</button>
+        <h3>Visszaállítás</h3>
+        <p>A visszaállítás a jelenlegi <strong>teljes programlistát és képeit lecseréli</strong> a mentés tartalmára. Előtte érdemes letölteni a jelenlegi állapotot.</p>
+        <label>Korábbi mentés kiválasztása<input id="restore-file" type="file" accept=".json,application/json" aria-describedby="backup-limits"></label>
+        <p id="backup-limits" class="hint">Legfeljebb 150 MB-os JSON-fájl; képenként legfeljebb 8 MB. A teljes ellenőrzés nagyobb mentésnél időt vehet igénybe.</p>
+        <p id="backup-status" role="status" aria-live="polite"></p>
+        <div id="restore-preview" hidden>
+          <p id="restore-summary"></p>
+          <p><strong>A jelenlegi teljes lista helyére ez a mentés kerül. Ez az üres mentésre is érvényes. A csere nem vonható vissza korábbi mentés nélkül.</strong></p>
+          <button id="confirm-restore" type="button" class="primary">Megerősítem: teljes lista cseréje</button>
+        </div>
+        <button id="cancel-restore" type="button" hidden>Mégse – visszaállítás megszakítása</button>
+      </div>
+    </section>
+    <footer>Csak a ti ötleteitek. Fiók, regisztráció és külső szolgáltatás nélkül.<br>Az adatok ezen az eszközön, ebben a böngészőben tárolódnak.</footer>
+  </main>
+</body>
+</html>
