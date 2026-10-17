@@ -8,6 +8,13 @@
   const attemptKey = 'csaladi-programok.oauth-attempt';
   const sdkURL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js';
   let client = null, session = null, working = true, ready = false;
+  let familyPanel = null, sessionRevision = 0;
+
+  function applySession(nextSession) {
+    session = nextSession;
+    familyPanel?.setUser(session?.user?.id ?? null);
+    render();
+  }
 
   function tell(text, error = false) {
     status.textContent = text;
@@ -92,15 +99,16 @@
 
   logout.onclick = async () => {
     if (!ready || working || !client) return;
-    working = true; render();
+    working = true; familyPanel?.setUser(null); render();
     tell('Kijelentkezés…');
     try {
       // Csak az ezen böngészőben használt munkamenetből jelentkezünk ki.
       const { error } = await client.auth.signOut({ scope: 'local' });
       if (error) throw error;
-      session = null; takeAttempt();
+      applySession(null); takeAttempt();
       tell('Kijelentkeztél. A helyi programok, képek és kedvencek megmaradtak.');
     } catch {
+      familyPanel?.setUser(session?.user?.id ?? null);
       tell('Nem sikerült kijelentkezni. Ellenőrizd az internetkapcsolatot, majd próbáld újra. A helyi adatok nem változtak.', true);
     } finally { working = false; render(); }
   };
@@ -138,9 +146,10 @@
       client = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'pkce', storageKey: 'csaladi-programok.supabase-auth' }
       });
+      familyPanel = window.createFamilyPanel?.(client) ?? null;
       client.auth.onAuthStateChange((event, nextSession) => {
-        session = nextSession;
-        render();
+        sessionRevision++;
+        applySession(nextSession);
         if (event === 'SIGNED_IN') tell('Sikeres belépés. A programok továbbra is csak ezen az eszközön tárolódnak.');
         if (event === 'SIGNED_OUT') tell('Kijelentkeztél. A helyi programok és képek megmaradtak.');
       });
@@ -158,12 +167,14 @@
           tell('Nem sikerült befejezni a belépést. Lehet, hogy a belépési hivatkozás lejárt vagy másik böngészőben indult. Indíts új belépést ezen az oldalon. A helyi adatok megmaradtak.', true);
         }
       }
+      const revision = sessionRevision;
       const { data, error } = await client.auth.getSession();
       if (error) throw error;
-      session = data?.session ?? null;
+      if (revision === sessionRevision) applySession(data?.session ?? null);
       ready = true;
       if (!callbackFailed) tell(session ? 'Bejelentkezve. A programok továbbra is csak ezen az eszközön tárolódnak.' : interrupted ? 'A Google-belépés nem fejeződött be. Újra próbálhatod; a helyi adatok megmaradtak.' : 'Nem vagy bejelentkezve. A helyi programok belépés nélkül is használhatók.');
     } catch {
+      applySession(null);
       ready = false;
       tell('A bejelentkezés most nem érhető el. Ellenőrizd az internetkapcsolatot és a böngésző helyi adattárolási engedélyét, majd frissítsd az oldalt. A helyi programok továbbra is használhatók.', true);
     } finally {

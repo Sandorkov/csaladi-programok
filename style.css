@@ -35,3 +35,7 @@ nav{flex-wrap:wrap}.backup-panel p{line-height:1.7}.backup-panel h3:not(:first-c
 #auth-status,.auth-note{font-size:12px;line-height:1.5;margin:7px 0 0;color:#647267}
 #auth-status.error{color:#a12626}.auth-actions button{min-height:44px}
 @media(max-width:760px){.top{flex-direction:column;gap:12px}.auth-panel{max-width:100%;text-align:left}.auth-actions{justify-content:flex-start}}
+/* A családtagság a belépési részen belül, külön betöltési/hibaállapottal. */
+#family-panel{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+#family-status{font-size:13px;line-height:1.5;margin:0;overflow-wrap:anywhere}
+#family-status.error{color:#a12626}#family-retry{margin-top:8px;min-height:44px}

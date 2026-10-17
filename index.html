@@ -8,10 +8,11 @@
   <script src="app.js" defer></script>
   <script src="backup.js" defer></script>
   <script src="auth-config.js" defer></script>
+  <script src="family.js" defer></script>
   <script src="auth.js" defer></script>
 </head>
 <body>
-  <header class="top"><div class="brand">☀ Családi programötletek</div><div class="auth-panel" aria-label="Bejelentkezés"><div class="auth-actions"><span id="auth-identity" hidden></span><button id="google-login" type="button" disabled>Belépés Google-fiókkal</button><button id="google-logout" type="button" hidden disabled>Kijelentkezés</button></div><p id="auth-status" role="status" aria-live="polite">Bejelentkezési állapot ellenőrzése…</p><p class="auth-note">A programok egyelőre ezen az eszközön tárolódnak; a belépés még nem szinkronizálja őket.</p></div></header>
+  <header class="top"><div class="brand">☀ Családi programötletek</div><div class="auth-panel" aria-label="Bejelentkezés"><div class="auth-actions"><span id="auth-identity" hidden></span><button id="google-login" type="button" disabled>Belépés Google-fiókkal</button><button id="google-logout" type="button" hidden disabled>Kijelentkezés</button></div><p id="auth-status" role="status" aria-live="polite">Bejelentkezési állapot ellenőrzése…</p><div id="family-panel" hidden><p id="family-status" role="status" aria-live="polite"></p><button id="family-retry" type="button" hidden>Tagság újratöltése</button></div><p class="auth-note">A programok egyelőre ezen az eszközön tárolódnak; a belépés még nem szinkronizálja őket.</p></div></header>
   <main>
     <section class="intro"><p class="eyebrow">IRÁNY AZ EGYÜTT TÖLTÖTT IDŐ</p><h1>A következő közös kaland<br>itt kezdődik.</h1><p>Gyűjtsétek egy helyre a jó ötleteket, és válasszatok programot a következő szabad délutánra.</p><div class="decoration" aria-hidden="true">🌳 🚲 ☀️</div></section>
     <nav aria-label="Főmenü"><button data-view="all" class="active" aria-current="page">Programok</button><button data-view="new">＋ Új program</button><button data-view="favorites">♡ Kedvencek</button><button data-view="backup">Adatmentés</button></nav>
