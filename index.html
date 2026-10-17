@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
   <script src="backup.js" defer></script>
+  <script src="family-archive.js" defer></script>
+  <script src="family-backup.js" defer></script>
   <script src="auth-config.js" defer></script>
   <script src="family.js" defer></script>
   <script src="cover-layout.js" defer></script>
@@ -45,11 +47,11 @@
     <section id="backup-view" hidden aria-labelledby="backup-title">
       <div class="section-head"><h2 id="backup-title">Adatmentés</h2></div>
       <div class="form-panel backup-panel">
-        <p class="scope-note"><strong>Ez az adatmentés és visszaállítás kizárólag a saját eszköz helyi programjait és képeit kezeli. A családi programokat nem menti és nem módosítja.</strong></p>
-        <h3>Biztonsági mentés</h3>
+        <p class="scope-note"><strong>A helyi JSON-mentés és visszaállítás kizárólag a saját eszköz helyi programjait és képeit kezeli. A családi ZIP-mentés külön panelen, alább található.</strong></p>
+        <h3>Helyi biztonsági mentés (JSON)</h3>
         <p>Töltsd le az összes programot, képet és kedvencjelölést egyetlen JSON-fájlba. A keresés és a szűrők nem korlátozzák a mentést.</p>
         <button id="export-backup" class="primary" type="button">Biztonsági mentés letöltése</button>
-        <h3>Visszaállítás</h3>
+        <h3>Helyi visszaállítás</h3>
         <p>A visszaállítás a jelenlegi <strong>teljes programlistát és képeit lecseréli</strong> a mentés tartalmára. Előtte érdemes letölteni a jelenlegi állapotot.</p>
         <label>Korábbi mentés kiválasztása<input id="restore-file" type="file" accept=".json,application/json" aria-describedby="backup-limits"></label>
         <p id="backup-limits" class="hint">Legfeljebb 150 MB-os JSON-fájl; képenként legfeljebb 8 MB. A teljes ellenőrzés nagyobb mentésnél időt vehet igénybe.</p>
@@ -61,12 +63,27 @@
         </div>
         <button id="cancel-restore" type="button" hidden>Mégse – visszaállítás megszakítása</button>
       </div>
+      <div id="family-backup-panel" class="form-panel backup-panel">
+        <h3>Családi biztonsági mentés (ZIP)</h3>
+        <p>Minden aktív családi program, közös kedvenc, eredeti fotó, borítóválasztás és borítóigazítás. A helyi adatokat nem érinti. A keresés és a szűrők nem korlátozzák.</p>
+        <p id="family-backup-access">A családi mentéshez jelentkezz be.</p>
+        <p class="hint">Legfeljebb 100 program, 500 kép, összesen 200 MiB eredeti kép; képenként 8 MiB, programonként 20 kép. A ZIP legfeljebb 220 MiB. Telefonon inkább 50 MiB alatti mentést használj; a böngészőnek többszörös memória kellhet.</p>
+        <button data-family id="family-export" type="button" class="primary" disabled>Teljes családi mentés letöltése</button>
+        <h3>Családi visszaállítás – csak adminisztrátornak</h3>
+        <p>A célcsaládot a jelenlegi bejelentkezés határozza meg. A csomag nem importál tagságot vagy jogosultságot.</p>
+        <label>Családi ZIP-mentés kiválasztása<input id="family-restore-file" type="file" accept=".zip,application/zip" disabled></label>
+        <p id="family-backup-status" role="status" aria-live="polite"></p>
+        <progress id="family-backup-progress" value="0" max="1" aria-label="Családi mentési művelet előrehaladása" hidden></progress>
+        <div id="family-restore-preview" hidden><p id="family-restore-summary"></p><p><strong>A visszaállítás a jelenlegi teljes családi listát és képeit lecseréli. Az előkészítés alatt még a jelenlegi lista használható. A régi állapot archiválva megmarad, automatikus takarítás nincs.</strong></p><button data-family id="family-restore-confirm" class="primary" type="button">Megerősítem: a teljes családi lista cseréje</button></div>
+        <div class="form-actions"><button data-family id="family-backup-stop" type="button" hidden>Megszakítás / előnézet elvetése</button><button data-family id="family-job-status" type="button" disabled>Visszaállítások állapota</button><button data-family id="family-job-cancel" type="button" hidden>Folyamatban lévő előkészítés megszakítása</button></div>
+        <p>Telepítés és helyreállítási tudnivalók: <a href="FAMILY_BACKUP_SETUP.md" target="_blank" rel="noopener">Családi mentési útmutató</a>.</p>
+      </div>
     </section>
     </div>
     <section id="shared-workspace" hidden aria-labelledby="shared-title">
       <div class="section-head"><h2 id="shared-title">Családi programok</h2><span id="shared-family-name"></span></div>
-      <p class="scope-note">Közös lista és privát családi képek a Supabase-ben. Nincs Realtime: a más eszközön történt változásokhoz frissítsd a listát. Az Adatmentés továbbra is csak a helyi adatokat kezeli.</p>
-      <div class="shared-toolbar"><button id="shared-refresh" type="button" disabled>Lista frissítése</button><button id="shared-new" class="primary" type="button" disabled>＋ Új családi program</button></div>
+      <p class="scope-note">Közös lista és privát családi képek a Supabase-ben. Nincs Realtime: a más eszközön történt változásokhoz frissítsd a listát. Az Adatmentésben külön helyi JSON- és családi ZIP-mentés található.</p>
+      <div class="shared-toolbar"><button id="shared-refresh" type="button" disabled>Lista frissítése</button><button id="shared-new" class="primary" type="button" disabled>＋ Új családi program</button><button id="shared-backup" type="button">Adatmentés</button></div>
       <p id="shared-status" role="status" aria-live="polite">A családi programokhoz lépj be, és legyen érvényes családtagságod.</p>
       <div id="shared-filters" class="filters" hidden>
         <label>Keresés név vagy helyszín alapján<input id="shared-search" type="search" aria-controls="shared-cards" placeholder="Név vagy helyszín"></label>

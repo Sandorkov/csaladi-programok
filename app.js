@@ -152,10 +152,10 @@ let busy = false;
 async function mutate(action, success) {
   if (busy) return;
   busy = true;
-  document.querySelectorAll('#local-workspace button').forEach(b => b.disabled = true);
+  document.querySelectorAll('#local-workspace button:not([data-family])').forEach(b => b.disabled = true);
   try { await action(); await refresh(); message(success); }
   catch (error) { console.error(error); message('Nem sikerült menteni. Lehet, hogy megtelt vagy nem elérhető a böngésző tárhelye. A bevitt adatokat megtartottuk.', true); }
-  finally { busy = false; document.querySelectorAll('#local-workspace button').forEach(b => b.disabled = !db); }
+  finally { busy = false; document.querySelectorAll('#local-workspace button:not([data-family])').forEach(b => b.disabled = !db); }
 }
 
 function setPreview(blob) {
@@ -226,12 +226,12 @@ form.onsubmit = event => {
 };
 
 async function init() {
-  document.querySelectorAll('#local-workspace button').forEach(b => b.disabled = true);
+  document.querySelectorAll('#local-workspace button:not([data-family])').forEach(b => b.disabled = true);
   try {
     db = await openDatabase();
-    db.onversionchange = () => { db.close(); db = null; message('Az adatbázis megváltozott. Töltsd újra az oldalt.', true); document.querySelectorAll('#local-workspace button').forEach(b => b.disabled = true); };
+    db.onversionchange = () => { db.close(); db = null; message('Az adatbázis megváltozott. Töltsd újra az oldalt.', true); document.querySelectorAll('#local-workspace button:not([data-family])').forEach(b => b.disabled = true); };
     await seedOnce(); await refresh(); message('');
-    document.querySelectorAll('#local-workspace button').forEach(b => b.disabled = false);
+    document.querySelectorAll('#local-workspace button:not([data-family])').forEach(b => b.disabled = false);
   } catch (error) {
     console.error(error); db = null;
     message('Az IndexedDB nem érhető el. Nyisd meg normál böngészőablakban, és engedélyezd a helyi adattárolást. Fájlmegnyitási probléma esetén lásd a README útmutatót.', true);

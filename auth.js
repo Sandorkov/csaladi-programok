@@ -147,7 +147,8 @@
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'pkce', storageKey: 'csaladi-programok.supabase-auth' }
       });
       window.sharedPrograms?.setClient(client, () => familyPanel?.setUser(session?.user?.id ?? null, true));
-      familyPanel = window.createFamilyPanel?.(client, state => window.sharedPrograms?.setMembership(state)) ?? null;
+      window.familyBackup?.setClient(client);
+      familyPanel = window.createFamilyPanel?.(client, state => {window.sharedPrograms?.setMembership(state);window.familyBackup?.setMembership(state);}) ?? null;
       client.auth.onAuthStateChange((event, nextSession) => {
         sessionRevision++;
         applySession(nextSession);

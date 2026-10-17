@@ -270,8 +270,10 @@
   }
   find('#scope-local').onclick=()=>chooseScope(false);
   find('#scope-shared').onclick=()=>chooseScope(true);
+  find('#shared-backup').onclick=()=>{chooseScope(false);if(typeof window.navigate==='function')window.navigate('backup');else find('[data-view="backup"]').click();};
   window.addEventListener('focus',()=>{if(!find('#shared-workspace').hidden)void refresh();});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!find('#shared-workspace').hidden)void refresh();});
-  window.sharedPrograms={setClient(next,onInvalid){client=next;revalidate=onInvalid||(()=>{});gallery?.setContext(next,access);},setMembership};
+  window.sharedPrograms={setClient(next,onInvalid){client=next;revalidate=onInvalid||(()=>{});gallery?.setContext(next,access);},setMembership,
+    reloadAfterRestore(){gallery?.setContext(null,null);gallery?.setContext(client,access);resetForm();rows=[];return refresh();}};
   setMembership({state:'signed-out'});
 })();

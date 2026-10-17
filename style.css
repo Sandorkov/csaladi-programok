@@ -50,6 +50,8 @@ nav{flex-wrap:wrap}.backup-panel p{line-height:1.7}.backup-panel h3:not(:first-c
 @media(max-width:560px){.scope-switch button{flex:1}.shared-toolbar button{width:100%}#shared-form .form-actions{flex-wrap:wrap}}
 /* Privát, billentyűzettel és érintéssel is kezelhető családi galéria. */
 .cover-button{border:0;border-radius:0;padding:0;cursor:pointer;overflow:hidden;flex-shrink:0}.cover-button img{display:block}
+#family-backup-panel{margin-top:24px}#family-backup-progress{width:100%;height:20px;margin:16px 0}#family-backup-status{white-space:pre-wrap;overflow-wrap:anywhere}#family-backup-status.error{color:#a12626}
+#family-backup-panel .form-actions{flex-wrap:wrap}#family-backup-panel button{max-width:100%;white-space:normal;overflow-wrap:anywhere}#family-restore-summary{overflow-wrap:anywhere}
 .cover-button{position:relative}.cover-button img.adjusted-cover{position:absolute;max-width:none;object-fit:fill;pointer-events:none}
 .cover-button img.cover-blur,.cover-preview img.cover-blur{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(14px) brightness(.7);transform:scale(1.15);pointer-events:none}.adjusted-cover,#cover-image{z-index:1}
 .cover-editor{width:min(620px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:22px;border:1px solid var(--border);border-radius:16px;color:#263d32;background:#f7f9f5}
