@@ -3,11 +3,22 @@
   'use strict';
   const find = selector => document.querySelector(selector);
   const form = find('#shared-form');
-  const columns = 'id,family_id,name,location,category,cost,description,favorite,version,created_at,updated_at';
+  const columns = 'id,family_id,name,location,category,cost,description,favorite,version,created_at,updated_at,gallery_version,deletion_pending,deleted_at';
   const categoryIcons = { 'Kirándulás': '🌳', 'Bringázás': '🚲', 'Családi program': '🧺' };
   let client = null, revalidate = () => {}, access = null, generation = 0, readSequence = 0;
   let rows = [], editing = null, draftId = null, pending = false, loading = false, listState = 'blocked';
   let readRequest = null, writeRequest = null;
+  const gallery=window.createFamilyGallery?.({
+    onProgram(program){
+      if(!access||(program.family_id&&program.family_id!==access.family.id))return;
+      const previous=rows.find(p=>p.id===program.id);
+      if(previous&&program.version&&previous.version>program.version)return;
+      if(program.deleted_at){rows=rows.filter(p=>p.id!==program.id);if(editing?.id===program.id)resetForm();}
+      else if(previous)rows=rows.map(p=>p.id===program.id?program:p);
+      render();controls();
+    },
+    onAccessError(){revalidate();},report:tell
+  });
 
   function node(tag, className, text) {
     const result = document.createElement(tag);
@@ -28,17 +39,18 @@
     find('#shared-workspace').dataset.state = listState;
     find('#shared-refresh').disabled = !access || pending || loading;
     find('#shared-new').disabled = !access || pending || loading || listState !== 'ready';
-    find('#shared-fields').disabled = !access || pending;
+    find('#shared-fields').disabled = !access || pending || Boolean(editing&&rows.find(p=>p.id===editing.id)?.deletion_pending);
     find('#shared-filters').hidden = !access;
   }
   function setMembership(info) {
     const next = info.state === 'member' && info.userId && info.family ? info : null;
     if (next && access?.userId === next.userId && access.family.id === next.family.id) {
-      access = next; find('#shared-family-name').textContent = next.family.name; return;
+      access = next; gallery?.setContext(client,next);find('#shared-family-name').textContent = next.family.name; return;
     }
     generation++; readSequence++;
     readRequest?.abort(); writeRequest?.abort(); readRequest = writeRequest = null;
     access = next; rows = []; pending = loading = false; resetForm();
+    gallery?.setContext(client,next);
     find('#shared-search').value = ''; find('#shared-category').value = '';
     find('#shared-only-favorites').checked = false;
     find('#shared-family-name').textContent = next?.family.name ?? '';
@@ -91,12 +103,13 @@
       await checkMembership(ticket, controller.signal);
       if (!current(ticket) || sequence !== readSequence) return false;
       rows = result; listState = 'ready';
+      gallery?.syncPrograms?.(rows);
       tell(rows.length ? 'A családi lista naprakész a lekérés időpontjában.' : 'Még nincs családi program. Adjátok hozzá az első közös ötletet!');
       return true;
     } catch {
       if (current(ticket) && sequence === readSequence) {
         rows = []; listState = 'error';
-        tell('Nem sikerült betölteni a családi listát. Ellenőrizd a kapcsolatot és a 04-es SQL telepítését, majd nyomd meg a Lista frissítése gombot. Ez nem üres lista, és nincs helyi tartalékmentés.', true);
+        tell('Nem sikerült betölteni a családi listát. Ellenőrizd a kapcsolatot és a 04-es/06-os SQL telepítését, majd nyomd meg a Lista frissítése gombot. Ez nem üres lista, és nincs helyi tartalékmentés.', true);
       }
       return false;
     } finally {
@@ -115,6 +128,7 @@
       .sort((a,b) => find('#shared-sort').value === 'desc' ? b.cost-a.cost : a.cost-b.cost);
   }
   function render() {
+    gallery?.clearCards(Boolean(access)&&listState==='ready');
     const cards = find('#shared-cards'); cards.replaceChildren();
     find('#shared-count').textContent = '';
     if (!access || listState !== 'ready') return;
@@ -132,7 +146,9 @@
     }
     for (const p of shown) {
       const card = node('article','card');
-      const image = node('div','card-image placeholder',categoryIcons[p.category]); image.setAttribute('aria-hidden','true');
+      const image = node('button','card-image placeholder cover-button',categoryIcons[p.category]);
+      image.type='button';image.setAttribute('aria-label',`Képek megnyitása: ${p.name}`);
+      if(gallery)void gallery.decorateCard(image,p);else image.disabled=true;
       const body = node('div','card-body');
       body.append(node('span','badge',p.category),node('h3','',p.name),node('p','location',`⌖ ${p.location}`),node('p','description',p.description));
       const price=node('div','cost',`${new Intl.NumberFormat('hu-HU').format(p.cost)} Ft`);
@@ -142,12 +158,14 @@
       favorite.setAttribute('aria-pressed',String(p.favorite));
       favorite.onclick=()=>mutate('update',{favorite:!p.favorite},p);
       const edit=node('button','','Szerkesztés'); edit.onclick=()=>openForm(p);
-      const remove=node('button','delete','Törlés');
+      const photos=node('button','','Képek');photos.onclick=()=>gallery?.open(p);
+      const remove=node('button','delete',p.deletion_pending?'Törlés folytatása':'Törlés');
       remove.onclick=()=>{
-        if (!pending && confirm(`Biztosan törlöd a család közös programját: „${p.name}”? Minden családtag listájáról eltűnik.`)) return mutate('delete',null,p);
+        if (!pending && confirm(`Biztosan törlöd a család közös programját ÉS a hozzá tartozó képeket: „${p.name}”? Minden családtag listájáról eltűnik.`)) return mutate('delete',null,p);
       };
-      for(const button of [favorite,edit,remove]) {button.type='button';button.disabled=pending||loading;}
-      actions.append(favorite,edit,remove);body.append(price,actions);card.append(image,body);cards.append(card);
+      for(const button of [favorite,edit,remove,photos]) {button.type='button';button.disabled=pending||loading;}
+      if(p.deletion_pending){favorite.disabled=edit.disabled=true;body.append(node('p','hint','A törlés még nem fejeződött be. A folytatás biztonságosan újrapróbálható.'));}
+      actions.append(favorite,edit,photos,remove);body.append(price,actions);card.append(image,body);cards.append(card);
     }
   }
 
@@ -163,6 +181,10 @@
 
   async function mutate(kind, values, record = null) {
     if (!client || !access || pending || loading) return;
+    if(kind==='delete'){
+      if(!gallery){tell('A galériamodul nem töltődött be. Frissítsd az oldalt; a törlés nem indult el.',true);return;}
+      return gallery.deleteProgram(record);
+    }
     const ticket=generation, familyId=access.family.id;
     readSequence++;readRequest?.abort();readRequest=null;
     const controller=new AbortController();writeRequest=controller;
@@ -216,6 +238,7 @@
   form.onsubmit=event=>{
     event.preventDefault();
     if(!access||pending||loading||!form.reportValidity())return;
+    if(editing&&rows.find(p=>p.id===editing.id)?.deletion_pending){tell('A program törlése folyamatban van; előbb fejezd be a törlést.',true);return;}
     const values=Object.fromEntries(new FormData(form));
     for(const key of ['name','location','description'])values[key]=values[key].trim();
     values.cost=Number(values.cost);
@@ -249,6 +272,6 @@
   find('#scope-shared').onclick=()=>chooseScope(true);
   window.addEventListener('focus',()=>{if(!find('#shared-workspace').hidden)void refresh();});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!find('#shared-workspace').hidden)void refresh();});
-  window.sharedPrograms={setClient(next,onInvalid){client=next;revalidate=onInvalid||(()=>{});},setMembership};
+  window.sharedPrograms={setClient(next,onInvalid){client=next;revalidate=onInvalid||(()=>{});gallery?.setContext(next,access);},setMembership};
   setMembership({state:'signed-out'});
 })();

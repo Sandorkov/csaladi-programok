@@ -48,3 +48,14 @@ nav{flex-wrap:wrap}.backup-panel p{line-height:1.7}.backup-panel h3:not(:first-c
 .shared-favorite-filter{grid-column:1/-1}.shared-favorite-filter input{margin-right:7px}
 #shared-count{font-size:13px;color:#647267}
 @media(max-width:560px){.scope-switch button{flex:1}.shared-toolbar button{width:100%}#shared-form .form-actions{flex-wrap:wrap}}
+/* Privát, billentyűzettel és érintéssel is kezelhető családi galéria. */
+.cover-button{border:0;border-radius:0;padding:0;cursor:pointer;overflow:hidden;flex-shrink:0}.cover-button img{display:block}
+.photo-dialog{width:min(920px,calc(100vw - 24px));max-height:calc(100dvh - 24px);border:1px solid var(--border);border-radius:16px;padding:22px;color:#263d32;background:#f7f9f5;overflow:auto}
+.photo-dialog::backdrop{background:#172b24bb}.photo-dialog:not([open]){display:none}
+.photo-heading,.photo-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.photo-heading{justify-content:space-between}.photo-heading h2{overflow-wrap:anywhere}
+.photo-dialog button{min-height:44px}.photo-stage{height:min(52vh,480px);display:grid;place-items:center;background:#e9efdf;border-radius:12px;overflow:auto;touch-action:pan-y pinch-zoom}
+.photo-stage img{max-width:100%;max-height:100%;object-fit:contain}.photo-stage img:not([src]){visibility:hidden}
+.photo-stage.zoomed{display:block}.photo-stage.zoomed img{max-width:none;max-height:none;width:auto;height:auto;touch-action:pan-x pan-y pinch-zoom}
+.photo-nav{margin:12px 0 18px}#photo-status,#photo-counter{font-size:14px;line-height:1.6;overflow-wrap:anywhere}#photo-status.error{color:#a12626}
+.photo-items,.photo-results{padding-left:22px;line-height:1.7;overflow-wrap:anywhere}.photo-items li{padding:12px 0;border-bottom:1px solid var(--border)}.photo-items span{display:block}.photo-items button{margin:6px 7px 0 0;font-size:13px}
+@media(max-width:560px){.photo-dialog{padding:16px}.photo-nav button{flex:1}.photo-stage{height:38vh}}

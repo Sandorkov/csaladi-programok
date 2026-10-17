@@ -9,6 +9,7 @@
   <script src="backup.js" defer></script>
   <script src="auth-config.js" defer></script>
   <script src="family.js" defer></script>
+  <script src="gallery.js" defer></script>
   <script src="shared-programs.js" defer></script>
   <script src="auth.js" defer></script>
 </head>
@@ -63,7 +64,7 @@
     </div>
     <section id="shared-workspace" hidden aria-labelledby="shared-title">
       <div class="section-head"><h2 id="shared-title">Családi programok</h2><span id="shared-family-name"></span></div>
-      <p class="scope-note">Közös lista a Supabase-ben, egyelőre képek nélkül. Nincs Realtime: a más eszközön történt változásokhoz frissítsd a listát. Az Adatmentés csak a helyi nézetet kezeli.</p>
+      <p class="scope-note">Közös lista és privát családi képek a Supabase-ben. Nincs Realtime: a más eszközön történt változásokhoz frissítsd a listát. Az Adatmentés továbbra is csak a helyi adatokat kezeli.</p>
       <div class="shared-toolbar"><button id="shared-refresh" type="button" disabled>Lista frissítése</button><button id="shared-new" class="primary" type="button" disabled>＋ Új családi program</button></div>
       <p id="shared-status" role="status" aria-live="polite">A családi programokhoz lépj be, és legyen érvényes családtagságod.</p>
       <div id="shared-filters" class="filters" hidden>
@@ -79,12 +80,27 @@
         <fieldset id="shared-fields"><legend class="hint">Közös, felhőben tárolt program</legend>
           <div class="fields"><label>Program neve *<input name="name" required maxlength="100"></label><label>Helyszín *<input name="location" required maxlength="150"></label><label>Kategória *<select name="category"><option>Kirándulás</option><option>Bringázás</option><option>Családi program</option></select></label><label>Becsült költség (Ft/fő) *<input name="cost" type="number" required min="0" max="100000000" step="1" value="0"></label></div>
           <label>Rövid leírás *<textarea name="description" required maxlength="1500" rows="4"></textarea></label>
-          <p class="hint">A családi programok képfeltöltése később érkezik. A helyi nézet képei változatlanul elérhetők.</p>
+          <p class="hint">A program mentése után a kártya Képek gombjával tölthetsz fel több fotót, később is. A helyi nézet képei változatlanul elérhetők.</p>
           <div class="form-actions"><button id="shared-save" type="submit" class="primary">Családi program mentése</button><button id="shared-cancel" type="button">Mégse</button><button id="shared-reload-edit" type="button" hidden>Űrlap újratöltése</button></div>
         </fieldset>
       </form>
     </section>
     <footer>Csak a ti ötleteitek. A Saját eszközön nézet belépés nélkül is használható.<br>A családi lista külön, jogosultsággal védett felhőadatbázisban található.</footer>
   </main>
+  <dialog id="photo-dialog" class="photo-dialog" aria-labelledby="photo-title">
+    <div class="photo-heading"><h2 id="photo-title">Képek</h2><button id="photo-close" type="button">Bezárás</button></div>
+    <p id="photo-status" role="status" aria-live="polite"></p>
+    <div id="photo-stage" class="photo-stage"><img id="photo-large" alt="Családi program képe"></div>
+    <p id="photo-counter" aria-live="polite"></p>
+    <div class="photo-nav"><button id="photo-prev" type="button" aria-label="Előző kép">← Előző</button><button id="photo-next" type="button" aria-label="Következő kép">Következő →</button><button id="photo-zoom" type="button" aria-pressed="false">Nagyítás</button><button id="photo-refresh" type="button">Galéria frissítése</button></div>
+    <p class="hint">Lapozás: nyílbillentyűk vagy telefonon vízszintes húzás. Bezárás: Escape vagy Bezárás. Nagyítva a képet görgetheted.</p>
+    <label>Képek hozzáadása<input id="photo-files" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" aria-describedby="photo-limits"></label>
+    <p id="photo-limits" class="hint">JPG, PNG, WebP vagy GIF; max. 8 MiB/kép, 10 fájl egyszerre, 20 kép/foglalás programonként. HEIC/HEIF és SVG nem támogatott. Az eredeti fájlt változtatás nélkül mentjük.</p>
+    <button id="photo-upload" class="primary" type="button">Kiválasztott képek feltöltése</button>
+    <ul id="photo-results" class="photo-results" aria-label="Fájlonkénti feltöltési eredmények" aria-live="polite"></ul>
+    <h3>Képek kezelése</h3><ul id="photo-items" class="photo-items"></ul>
+    <button id="photo-cleanup" type="button">Félbemaradt műveletek rendezése</button>
+    <p class="hint">A rendezés a törlésre jelölt képeket és a 15 percnél régebbi, nem véglegesített feltöltéseket távolítja el. A kész képeket nem törli.</p>
+  </dialog>
 </body>
 </html>
