@@ -12,6 +12,7 @@
 
   function applySession(nextSession) {
     session = nextSession;
+    window.familyMembers?.setUser(session?.user?.id ?? null);
     familyPanel?.setUser(session?.user?.id ?? null);
     render();
   }
@@ -78,6 +79,9 @@
 
   login.onclick = async () => {
     if (!ready || working || !client) return;
+    if(window.FamilyInviteLink?.canLeave()===false){
+      tell('A meghívó megőrzéséhez engedélyezd a böngésző sessionStorage tárhelyét. Másik lehetőség: vesd el a meghívót, lépj be, majd nyisd meg újra ugyanazt a linket.',true);return;
+    }
     working = true; render();
     tell('Átirányítás a Google bejelentkezési oldalára…');
     try {
@@ -99,7 +103,7 @@
 
   logout.onclick = async () => {
     if (!ready || working || !client) return;
-    working = true; familyPanel?.setUser(null); render();
+    working = true; window.familyMembers?.setUser(null);familyPanel?.setUser(null); render();
     tell('Kijelentkezés…');
     try {
       // Csak az ezen böngészőben használt munkamenetből jelentkezünk ki.
@@ -108,6 +112,7 @@
       applySession(null); takeAttempt();
       tell('Kijelentkeztél. A helyi programok, képek és kedvencek megmaradtak.');
     } catch {
+      window.familyMembers?.setUser(session?.user?.id ?? null);
       familyPanel?.setUser(session?.user?.id ?? null);
       tell('Nem sikerült kijelentkezni. Ellenőrizd az internetkapcsolatot, majd próbáld újra. A helyi adatok nem változtak.', true);
     } finally { working = false; render(); }
@@ -148,7 +153,8 @@
       });
       window.sharedPrograms?.setClient(client, () => familyPanel?.setUser(session?.user?.id ?? null, true));
       window.familyBackup?.setClient(client);
-      familyPanel = window.createFamilyPanel?.(client, state => {window.sharedPrograms?.setMembership(state);window.familyBackup?.setMembership(state);}) ?? null;
+      window.familyMembers?.setClient(client,()=>familyPanel?.setUser(session?.user?.id??null,true));
+      familyPanel = window.createFamilyPanel?.(client, state => {window.sharedPrograms?.setMembership(state);window.familyBackup?.setMembership(state);window.familyMembers?.setMembership(state);}) ?? null;
       client.auth.onAuthStateChange((event, nextSession) => {
         sessionRevision++;
         applySession(nextSession);

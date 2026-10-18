@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <script src="invite-link.js"></script>
   <title>Családi programötletek</title>
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
@@ -11,6 +13,7 @@
   <script src="family-backup.js" defer></script>
   <script src="auth-config.js" defer></script>
   <script src="family.js" defer></script>
+  <script src="family-members.js" defer></script>
   <script src="cover-layout.js" defer></script>
   <script src="gallery.js" defer></script>
   <script src="shared-programs.js" defer></script>
@@ -20,6 +23,21 @@
   <header class="top"><div class="brand">☀ Családi programötletek</div><div class="auth-panel" aria-label="Bejelentkezés"><div class="auth-actions"><span id="auth-identity" hidden></span><button id="google-login" type="button" disabled>Belépés Google-fiókkal</button><button id="google-logout" type="button" hidden disabled>Kijelentkezés</button></div><p id="auth-status" role="status" aria-live="polite">Bejelentkezési állapot ellenőrzése…</p><div id="family-panel" hidden><p id="family-status" role="status" aria-live="polite"></p><button id="family-retry" type="button" hidden>Tagság újratöltése</button></div><p class="auth-note">A Saját eszközön és a Családi programok külön listák. Nincs automatikus átvitel.</p></div></header>
   <main>
     <section class="intro"><p class="eyebrow">IRÁNY AZ EGYÜTT TÖLTÖTT IDŐ</p><h1>A következő közös kaland<br>itt kezdődik.</h1><p>Gyűjtsétek egy helyre a jó ötleteket, és válasszatok programot a következő szabad délutánra.</p><div class="decoration" aria-hidden="true">🌳 🚲 ☀️</div></section>
+    <section id="invite-panel" class="form-panel membership-panel" hidden aria-labelledby="invite-title">
+      <h2 id="invite-title">Családi meghívó</h2><p id="invite-status" role="status" aria-live="polite"></p>
+      <div class="form-actions"><button id="invite-login" type="button" hidden>Belépés a saját Google-fiókommal</button><button id="invite-refresh" type="button" hidden>Meghívó ellenőrzése újra</button><button id="invite-accept" class="primary" type="button" hidden>Csatlakozom normál tagként</button><button id="invite-dismiss" type="button">Meghívó elvetése</button></div>
+    </section>
+    <button id="family-members-open" type="button" hidden>Családtagok</button>
+    <section id="family-members-panel" class="form-panel membership-panel" hidden aria-labelledby="family-members-title">
+      <div class="section-head"><h2 id="family-members-title">Családtagok</h2><button id="family-members-close" type="button">Bezárás</button></div>
+      <p id="family-members-status" role="status" aria-live="polite"></p>
+      <button id="family-members-refresh" type="button">Tagok és meghívók frissítése</button>
+      <ul id="family-member-list" aria-label="Családtagok és szerepkörök"></ul>
+      <h3>Meghívók</h3><p>A meghívó egyszer használható, 7 napig érvényes. A csatlakozó normál tag lesz. A linket te másolod és osztod meg; az alkalmazás nem küld e-mailt.</p>
+      <button id="family-invite-create" class="primary" type="button">Új meghívólink létrehozása</button>
+      <div id="family-invite-result" hidden><label>Új meghívólink<input id="family-invite-link" type="text" readonly autocomplete="off" spellcheck="false"></label><button id="family-invite-copy" type="button">Meghívólink másolása</button><p class="hint">Csak most másolható ki. Bezárás vagy frissítés után a kód nem kérhető vissza; az adatbázis csak a lenyomatát tárolja.</p></div>
+      <ul id="family-invite-list" aria-label="Meghívók állapota"></ul>
+    </section>
     <div class="scope-switch" role="group" aria-label="Programok tárolási helye"><button id="scope-local" type="button" aria-pressed="true" class="active">Saját eszközön</button><button id="scope-shared" type="button" aria-pressed="false">Családi programok</button></div>
     <div id="local-workspace">
     <p class="scope-note">Saját eszközön · A meglévő programok és képek csak ebben a böngészőben vannak. Nincs automatikus átvitel.</p>
