@@ -2,25 +2,30 @@
 (()=>{
  'use strict';
  const find=s=>document.querySelector(s),linkState=window.FamilyInviteLink;
+ const mailLabels={sending:'A küldés elkezdődött; eredménye még nem igazolt. Frissítsd a listát.',accepted:'A MailApp hívása sikeres; a kézbesítés nem igazolt.',rejected:'A küldés nem indult el.',unknown:'A küldés eredménye bizonytalan. Ellenőrizd az Apps Script állapotát; nincs automatikus újraküldés.'};
+ const mailIssues={QUOTA:'A Google napi kvótája vagy az Apps Script küldési korlátja elfogyott.',CONFIG:'Hiányos Apps Script-beállítás.',AUTH:'A szerverek közötti aláírás hibás. Ellenőrizd a közös titkot.',EXPIRED:'A küldési kérés aláírása lejárt.',INVALID:'Az Apps Script nem fogadta el a kérés mezőit.',STORAGE:'Az Apps Script tartós állapottárolása hibát jelzett.',MAIL_ERROR:'A MailApp eredménye bizonytalan.',BUSY:'Másik küldés van folyamatban. Nem küldünk újra automatikusan.',CONFLICT:'A kérésazonosító már más tartalommal szerepel.',TRANSPORT:'Nem érkezett ellenőrizhető válasz. Ellenőrizd a webalkalmazás telepítését és elérését.',RESPONSE:'A válasz nem volt hitelesen ellenőrizhető.',DATABASE:'A küldési eredmény adatbázisos visszaigazolása hiányzik.'};
+ const mailText=(state,issue)=>(mailLabels[state]||'Ismeretlen küldési eredmény')+(mailIssues[issue]?' '+mailIssues[issue]:'');
  const labels={active:'Aktív',expired:'Lejárt',revoked:'Visszavont',used:'Felhasznált',issuer_inactive:'A kiállító adminjoga megszűnt'};
  let client=null,userId=null,access=null,epoch=0,adminTicket=0,inviteTicket=0,adminBusy=false,inviteBusy=false,result=null,lastLink=null,reload=()=>{};
+ let emailRequest=null;
  const admin=()=>Boolean(client&&userId&&access?.userId===userId&&access?.family.role==='admin');
  function say(id,text,error=false){find(id).textContent=text;find(id).classList.toggle('error',error);}
  function clearLink(){lastLink=null;find('#family-invite-link').value='';find('#family-invite-result').hidden=true;}
  function controls(){
   find('#family-members-open').hidden=!admin();
-  for(const id of ['#family-members-refresh','#family-invite-create'])find(id).disabled=!admin()||adminBusy;
+  for(const id of ['#family-members-refresh','#family-invite-create','#family-invite-send','#family-invite-email'])find(id).disabled=!admin()||adminBusy;
   find('#family-invite-copy').disabled=!admin()||!lastLink;
   find('#invite-login').hidden=Boolean(userId)||!linkState?.get();
   find('#invite-refresh').hidden=!userId||!linkState?.get();find('#invite-refresh').disabled=inviteBusy;
   find('#invite-accept').hidden=!userId||result?.status!=='valid';find('#invite-accept').disabled=inviteBusy;
+  find('#invite-switch').hidden=!userId||!['wrong_account','other_family'].includes(result?.status);
   find('#invite-dismiss').disabled=inviteBusy;
  }
- function clearAdmin(){adminTicket++;adminBusy=false;clearLink();find('#family-member-list').replaceChildren();find('#family-invite-list').replaceChildren();find('#family-members-panel').hidden=true;say('#family-members-status','');controls();}
- function detail(error){return ['42501','55000','22023'].includes(error?.code)?error.message:'Nem érkezett biztos szerverválasz. Ellenőrizd a kapcsolatot, a 12-es migrációt és a family-invite Edge telepítését, majd frissítsd az állapotot.';}
+ function clearAdmin(){find('#family-invite-email').value='';emailRequest=null;adminTicket++;adminBusy=false;clearLink();find('#family-member-list').replaceChildren();find('#family-invite-list').replaceChildren();find('#family-members-panel').hidden=true;say('#family-members-status','');controls();}
+ function detail(error){return ['42501','55000','22023','54000','MAIL_CONFIG'].includes(error?.code)?error.message:'Nem érkezett biztos szerverválasz. Ellenőrizd a kapcsolatot, a 13-as migrációt és a family-invite Edge telepítését, majd frissítsd az állapotot.';}
  async function rpc(action,args={}){const {data,error}=await client.rpc('family_members_admin',{p_action:action,...args});if(error)throw error;if(!data)throw Error('missing');return data;}
- async function edge(action,token){
-  const {data,error}=await client.functions.invoke('family-invite',{body:{action,...(token?{token}:{})}});
+ async function edge(action,token,extra={}){
+  const {data,error}=await client.functions.invoke('family-invite',{body:{action,...(token?{token}:{}),...extra}});
   if(error){let info;try{info=await error.context?.json();}catch{/* Nem naplózunk hibatörzset. */}const e=Error(info?.error||'Nem érkezett biztos szerverválasz. Ellenőrizd újra a meghívót.');e.code=info?.code;throw e;}
   if(!data||data.error)throw Error('missing');return data;
  }
@@ -34,12 +39,13 @@
    for(const m of data.members){if(!['admin','member'].includes(m.role))throw Error('role');find('#family-member-list').append(node('li',`${m.display_name}${m.email&&m.email!==m.display_name?' · '+m.email:''} · ${m.role==='admin'?'Adminisztrátor':'Tag'} · Csatlakozás: ${date(m.joined_at)}`));}
    for(const i of data.invites){
     const row=node('li',`${i.id.slice(0,8)} · ${labels[i.status]||'Ismeretlen állapot'} · Érvényes eddig: ${date(i.expires_at)}`);
+    if(i.recipient_email)row.append(node('p',`${i.recipient_email} · ${mailText(i.mail_state,i.mail_issue)}`));
     if(i.status==='active'){
      const b=node('button','Visszavonás');b.type='button';b.onclick=async()=>{
       if(!admin()||adminBusy||!confirm('Visszavonod ezt az egyszer használható családi meghívót?'))return;
       const e=epoch,t=++adminTicket;adminBusy=true;controls();b.disabled=true;
       try{const answer=await rpc('revoke',{p_invite:i.id});if(e!==epoch||t!==adminTicket||!admin())return;
-       clearLink();await load();if(e===epoch&&admin())say('#family-members-status',answer.status==='used'?'A meghívót időközben felhasználták; meglévő tagságot nem töröltünk.':'A meghívó visszavonva.');
+       emailRequest=null;clearLink();await load();if(e===epoch&&admin())say('#family-members-status',answer.status==='used'?'A meghívót időközben felhasználták; meglévő tagságot nem töröltünk.':'A meghívó visszavonva.');
       }catch(error){if(e===epoch&&t===adminTicket&&admin())say('#family-members-status',detail(error),true);}
       finally{if(e===epoch&&t===adminTicket){adminBusy=false;controls();b.disabled=false;}}
      };row.append(b);
@@ -58,6 +64,7 @@
   else if(['joined','already_member'].includes(data.status)&&typeof name==='string'){
    linkState.clear();say('#invite-status',data.status==='joined'?`Sikeresen csatlakoztál: ${name} · Tag. A Családi programok nézetben éred el a közös listát.`:`Már ennek a családnak a tagja vagy: ${name}. Nem hoztunk létre új tagságot.`);
   }else if(data.status==='other_family')say('#invite-status',`Már másik családhoz tartozol. Nem léptetünk át a(z) ${name} családba, és nem töröljük a tagságodat. Ha másik Google-fiókkal szeretnél csatlakozni, jelentkezz ki, majd lépj be azzal.`,true);
+  else if(data.status==='wrong_account')say('#invite-status','Ez a meghívó másik, igazolt Google-fiókhoz tartozik. Válts a címzett fiókjára; nem történt csatlakozás.',true);
   else say('#invite-status',({expired:'A meghívó lejárt. Kérj új linket az adminisztrátortól.',revoked:'A meghívót visszavonták. Kérj új linket.',used:'Ezt az egyszer használható meghívót már felhasználták.',issuer_inactive:'A meghívó kiállítójának adminjoga megszűnt. Kérj új meghívót.'})[data.status]||'A meghívó hibás vagy már nem elérhető. Kérj új linket.',true);
  }
  async function checkInvite(){
@@ -81,6 +88,7 @@
  };
  find('#invite-refresh').onclick=()=>{if(!inviteBusy)return checkInvite();};
  find('#invite-dismiss').onclick=()=>{if(inviteBusy)return;inviteTicket++;linkState?.clear();result=null;find('#invite-panel').hidden=true;say('#invite-status','');controls();};
+ find('#invite-switch').onclick=()=>find('#google-logout').click();
  find('#invite-login').onclick=()=>find('#google-login').click();
  find('#family-members-open').onclick=()=>{if(!admin())return;find('#family-members-panel').hidden=false;void load();};
  find('#family-members-close').onclick=()=>{adminTicket++;adminBusy=false;clearLink();find('#family-members-panel').hidden=true;controls();find('#family-members-open').focus();};
@@ -93,6 +101,17 @@
    find('#family-invite-link').value=lastLink;find('#family-invite-result').hidden=false;
    await load();if(e===epoch&&admin())say('#family-members-status','A meghívó elkészült, 7 napig érvényes. Másold ki most a linket; később nem kérhető vissza.');
   }catch(error){if(e===epoch&&t===adminTicket&&admin())say('#family-members-status',detail(error),true);}
+  finally{if(e===epoch&&t===adminTicket){adminBusy=false;controls();}}
+ };
+ find('#family-invite-email-form').onsubmit=async event=>{
+  event.preventDefault();if(!admin()||adminBusy)return;
+  const email=find('#family-invite-email').value.trim().toLowerCase();
+  if(!emailRequest||emailRequest.email!==email)emailRequest={email,id:crypto.randomUUID()};
+  const e=epoch,t=++adminTicket;adminBusy=true;controls();say('#family-members-status','Meghívó létrehozása és levélküldés…');
+  try{const answer=await edge('send_email',null,{email,request_id:emailRequest.id});
+   if(e!==epoch||t!==adminTicket||!admin())return;
+   await load();if(e===epoch&&admin())say('#family-members-status',(answer.reused?'Már létezik ilyen meghívás; új levelet nem küldtünk. ':'')+mailText(answer.mail_state,answer.mail_issue),answer.mail_state!=='accepted');
+  }catch(error){if(e===epoch&&t===adminTicket&&admin())say('#family-members-status',detail(error)+' Frissítsd a meghívólistát; ismétléskor nem küldünk vakon új levelet.',true);}
   finally{if(e===epoch&&t===adminTicket){adminBusy=false;controls();}}
  };
  find('#family-invite-copy').onclick=async()=>{

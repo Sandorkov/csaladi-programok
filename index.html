@@ -25,7 +25,7 @@
     <section class="intro"><p class="eyebrow">IRÁNY AZ EGYÜTT TÖLTÖTT IDŐ</p><h1>A következő közös kaland<br>itt kezdődik.</h1><p>Gyűjtsétek egy helyre a jó ötleteket, és válasszatok programot a következő szabad délutánra.</p><div class="decoration" aria-hidden="true">🌳 🚲 ☀️</div></section>
     <section id="invite-panel" class="form-panel membership-panel" hidden aria-labelledby="invite-title">
       <h2 id="invite-title">Családi meghívó</h2><p id="invite-status" role="status" aria-live="polite"></p>
-      <div class="form-actions"><button id="invite-login" type="button" hidden>Belépés a saját Google-fiókommal</button><button id="invite-refresh" type="button" hidden>Meghívó ellenőrzése újra</button><button id="invite-accept" class="primary" type="button" hidden>Csatlakozom normál tagként</button><button id="invite-dismiss" type="button">Meghívó elvetése</button></div>
+      <div class="form-actions"><button id="invite-login" type="button" hidden>Belépés a saját Google-fiókommal</button><button id="invite-refresh" type="button" hidden>Meghívó ellenőrzése újra</button><button id="invite-accept" class="primary" type="button" hidden>Csatlakozom normál tagként</button><button id="invite-switch" type="button" hidden>Másik Google-fiókkal lépek be</button><button id="invite-dismiss" type="button">Meghívó elvetése</button></div>
     </section>
     <button id="family-members-open" type="button" hidden>Családtagok</button>
     <section id="family-members-panel" class="form-panel membership-panel" hidden aria-labelledby="family-members-title">
@@ -33,7 +33,8 @@
       <p id="family-members-status" role="status" aria-live="polite"></p>
       <button id="family-members-refresh" type="button">Tagok és meghívók frissítése</button>
       <ul id="family-member-list" aria-label="Családtagok és szerepkörök"></ul>
-      <h3>Meghívók</h3><p>A meghívó egyszer használható, 7 napig érvényes. A csatlakozó normál tag lesz. A linket te másolod és osztod meg; az alkalmazás nem küld e-mailt.</p>
+      <h3>Meghívók</h3><p>A meghívó egyszer használható, 7 napig érvényes. A csatlakozó normál tag lesz. Választhatsz másolható linket vagy e-mail-címhez kötött meghívást.</p>
+      <form id="family-invite-email-form"><label>Meghívott Google-fiókjának e-mail-címe<input id="family-invite-email" type="email" maxlength="254" required autocomplete="off"></label><button id="family-invite-send" class="primary" type="submit">Meghívó elküldése</button><p class="hint">A sikeres MailApp-hívás még nem igazolt kézbesítés. Csak a megadott Google-fiók csatlakozhat.</p></form>
       <button id="family-invite-create" class="primary" type="button">Új meghívólink létrehozása</button>
       <div id="family-invite-result" hidden><label>Új meghívólink<input id="family-invite-link" type="text" readonly autocomplete="off" spellcheck="false"></label><button id="family-invite-copy" type="button">Meghívólink másolása</button><p class="hint">Csak most másolható ki. Bezárás vagy frissítés után a kód nem kérhető vissza; az adatbázis csak a lenyomatát tárolja.</p></div>
       <ul id="family-invite-list" aria-label="Meghívók állapota"></ul>

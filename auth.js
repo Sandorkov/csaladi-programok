@@ -87,7 +87,7 @@
     try {
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.FAMILY_AUTH_CONFIG.redirectTo, skipBrowserRedirect: true }
+        options: { queryParams: { prompt: 'select_account' }, redirectTo: window.FAMILY_AUTH_CONFIG.redirectTo, skipBrowserRedirect: true }
       });
       if (error || !data?.url) throw error || new Error('missing-url');
       const target = new URL(data.url);
